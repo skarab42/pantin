@@ -7,6 +7,7 @@ use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    color_eyre::install()?;
     pantin_lib::tracing::setup()?;
 
     info!("Starting...");
