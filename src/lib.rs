@@ -2,6 +2,8 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::missing_errors_doc)]
 
+pub mod tracing;
+
 pub fn hello_world() {
     println!("Tchao pantin!");
 }
