@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
     pantin_lib::tracing::setup()?;
 
     info!("Open Firefox browser...");
-    let firefox = Browser::open()?;
+    let firefox = Browser::open().await?;
 
     info!("Press [CTRL+C] to exit gracefully.");
     pantin_lib::signal::shutdown().await?;
