@@ -5,12 +5,14 @@
 use color_eyre::eyre::Result;
 use tracing::info;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     pantin_lib::tracing::setup()?;
 
     info!("Starting...");
 
-    pantin_lib::hello_world();
+    info!("Press [CTRL+C] to exit gracefully.");
+    pantin_lib::signal::shutdown().await?;
 
     info!("Exited gracefully !");
 
