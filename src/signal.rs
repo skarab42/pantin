@@ -9,7 +9,7 @@ use tracing::debug;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("register shutdown signal failed")]
-    RegisterShutdown(#[from] io::Error),
+    RegisterShutdown(#[source] io::Error),
 }
 
 pub type Result<T, E = Error> = result::Result<T, E>;

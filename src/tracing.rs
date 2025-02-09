@@ -7,7 +7,7 @@ use tracing_subscriber::{fmt::layer, layer::SubscriberExt, EnvFilter, Registry};
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("setup tracing failed")]
-    SetGlobalDefault(#[from] SetGlobalDefaultError),
+    SetGlobalDefault(#[source] SetGlobalDefaultError),
 }
 
 pub type Result<T, E = Error> = result::Result<T, E>;
