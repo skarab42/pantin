@@ -3,6 +3,7 @@ use std::{fmt::Display, io, net::SocketAddr, result};
 use temp_dir::TempDir;
 use thiserror::Error;
 use tokio::{fs::write, net::TcpListener};
+use tracing::debug;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -30,7 +31,9 @@ pub struct Profile {
 
 impl Profile {
     pub async fn new() -> Result<Self> {
+        debug!("Creating a new Profile instance...");
         let directory = create_directory()?;
+        debug!("Created profile directory at: {:?}", directory.path());
         let marionette_address = crate_user_js_file(&directory).await?;
 
         Ok(Self {
@@ -54,17 +57,24 @@ impl Profile {
     }
 
     pub fn remove(self) -> Result<()> {
+        debug!("Removing profile directory at: {:?}", self.directory.path());
         self.directory.cleanup().map_err(Error::RemoveDirectory)
     }
 }
 
-async fn crate_user_js_file(directory: &TempDir) -> Result<SocketAddr, Error> {
+async fn crate_user_js_file(directory: &TempDir) -> Result<SocketAddr> {
+    debug!("Creating 'user.js' inside the temporary profile directory.");
     let marionette_address = get_free_local_address().await?;
+    debug!(
+        "Get free local Marionette address: {:?}",
+        marionette_address
+    );
     let marionette_port_pref = user_pref("marionette.port", marionette_address.port());
 
     let user_js_path = directory.child("user.js");
     let user_js_data = [&USER_JS, marionette_port_pref.as_bytes()].concat();
 
+    debug!("Write 'user.js' file at: {:?}", user_js_path);
     write(&user_js_path, user_js_data)
         .await
         .map_err(Error::CreateUserJsFile)?;
@@ -72,7 +82,7 @@ async fn crate_user_js_file(directory: &TempDir) -> Result<SocketAddr, Error> {
     Ok(marionette_address)
 }
 
-fn create_directory() -> Result<TempDir, Error> {
+fn create_directory() -> Result<TempDir> {
     let directory = TempDir::with_prefix("pentin-firefox-profile")
         .map_err(Error::CreateDirectory)?
         .panic_on_cleanup_error();

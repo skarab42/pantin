@@ -11,16 +11,14 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     pantin_lib::tracing::setup()?;
 
-    info!("Open Firefox browser...");
+    info!("Starting...");
+
     let firefox = Browser::open().await?;
 
     info!("Press [CTRL+C] to exit gracefully.");
     pantin_lib::signal::shutdown().await?;
 
-    info!("Close Firefox browser...");
-    let status = firefox.close().await?;
-
-    info!("Firefox browser status: {status:?}");
+    firefox.close().await?;
 
     info!("Exited gracefully !");
 
