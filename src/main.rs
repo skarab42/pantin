@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    pantin_lib::hello_world();
 }
