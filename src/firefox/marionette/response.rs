@@ -103,8 +103,7 @@ pub fn parse_raw<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) ->
 
 pub fn parse<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) -> Result<(u32, T)> {
     let response = parse_raw(json)?;
-
-    debug!(?response, "Parsed response");
+    debug!(?response, "Got response");
 
     match response {
         Response::Success(_, id, (), success) => Ok((id, success)),

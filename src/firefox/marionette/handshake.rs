@@ -10,7 +10,7 @@ use crate::firefox::marionette::response;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    ParseResponse(#[from] crate::firefox::marionette::response::Error),
+    ParseResponse(#[from] response::Error),
     #[error("expected application type 'gecko', got: {0}")]
     UnexpectedApplicationType(String),
     #[error("expected marionette protocol version 3, got: {0}")]
@@ -31,7 +31,7 @@ impl Handshake {
         debug!("Reading Handshake...");
         let json = response::read(stream).await?;
         let handshake: Self = response::parse_raw(json)?;
-        debug!(?handshake, "Got Handshake response");
+        debug!(response = ?handshake, "Got response");
 
         if handshake.application_type != "gecko" {
             return Err(Error::UnexpectedApplicationType(handshake.application_type));
