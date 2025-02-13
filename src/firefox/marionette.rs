@@ -4,4 +4,4 @@ pub mod handshake;
 pub mod message;
 pub mod response;
 
-pub use client::Client;
+pub use client::Client as Marionette;

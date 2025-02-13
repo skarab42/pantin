@@ -5,18 +5,21 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use crate::{
-    firefox::{marionette::Client, Profile},
+    firefox::{marionette, marionette::Marionette, profile, Profile},
+    process,
     process::{ChildStatus, ChildWrapper},
 };
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Profile(#[from] crate::firefox::profile::Error),
+    Profile(#[from] profile::Error),
     #[error(transparent)]
-    ChildWrapper(#[from] crate::process::Error),
+    Process(#[from] process::Error),
     #[error(transparent)]
-    Marionette(#[from] crate::firefox::marionette::client::Error),
+    MarionetteClient(#[from] marionette::client::Error),
+    #[error(transparent)]
+    MarionetteCommand(#[from] marionette::command::Error),
     #[error("get child status failed: {0}")]
     ChildStatus(String),
 }
@@ -28,7 +31,7 @@ pub struct Browser {
     uuid: Uuid,
     profile: Profile,
     process: ChildWrapper,
-    marionette: Client,
+    marionette: Marionette,
 }
 
 impl Browser {
@@ -50,7 +53,7 @@ impl Browser {
         )?;
 
         debug!("Browser opened!");
-        let marionette = Client::new(&profile.marionette_address()).await?;
+        let marionette = Marionette::new(&profile.marionette_address()).await?;
         debug!(
             "Marionette listening at http://{}",
             profile.marionette_address()
