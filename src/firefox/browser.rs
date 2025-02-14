@@ -19,7 +19,7 @@ pub enum Error {
     #[error(transparent)]
     MarionetteClient(#[from] marionette::client::Error),
     #[error(transparent)]
-    MarionetteCommand(#[from] marionette::command::Error),
+    MarionetteRequest(#[from] marionette::request::Error),
     #[error("get child status failed: {0}")]
     ChildStatus(String),
 }

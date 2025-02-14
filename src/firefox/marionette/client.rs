@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::firefox::marionette::{command, handshake, message};
+use crate::firefox::marionette::{handshake, request, webdriver};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -20,7 +20,7 @@ pub enum Error {
     #[error(transparent)]
     Handshake(#[from] handshake::Error),
     #[error(transparent)]
-    Command(#[from] command::Error),
+    Request(#[from] request::Error),
 }
 
 pub type Result<T, E = Error> = result::Result<T, E>;
@@ -29,7 +29,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 pub struct Client {
     stream: TcpStream,
     handshake: handshake::Handshake,
-    session: message::NewSession,
+    session: webdriver::NewSession,
 }
 
 impl Client {
@@ -37,7 +37,7 @@ impl Client {
         debug!("Creating a new Marionette Client instance...");
         let mut stream = connect(address, 2000, 100).await?;
         let handshake = handshake::Handshake::read_response(&mut stream).await?;
-        let session = message::NewSession::send(&mut stream).await?;
+        let session = webdriver::NewSession::send(&mut stream).await?;
 
         Ok(Self {
             stream,
