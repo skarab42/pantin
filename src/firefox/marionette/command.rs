@@ -5,7 +5,6 @@ use std::{
 };
 
 use serde::{de::DeserializeOwned, Serialize, Serializer};
-use serde_json::Value;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use tracing::debug;
 
@@ -44,44 +43,35 @@ impl Serialize for Direction {
     }
 }
 
-#[derive(Debug)]
-pub struct Command {
-    direction: Direction,
-    id: u32,
-    command: String,
-    data: Value,
-}
+type Id = u32;
+type Name = String;
 
-impl Command {
-    pub fn new<C>(command: C, data: Value) -> Self
+#[derive(Debug, Serialize)]
+pub struct Command<T>(Direction, Id, Name, T);
+
+impl<T> Command<T> {
+    pub fn new<C>(command: C, data: T) -> Self
     where
         C: Into<String>,
     {
-        Self {
-            direction: Direction::Request,
-            id: MESSAGE_ID.fetch_add(1, Ordering::SeqCst),
-            command: format!("WebDriver:{}", command.into()),
+        Self(
+            Direction::Request,
+            MESSAGE_ID.fetch_add(1, Ordering::SeqCst),
+            format!("WebDriver:{}", command.into()),
             data,
-        }
+        )
     }
 
     #[must_use]
-    pub const fn id(&self) -> u32 {
-        self.id
+    pub const fn id(&self) -> Id {
+        self.1
     }
 }
 
-impl Serialize for Command {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let data = (&self.direction, &self.id, &self.command, &self.data);
-
-        data.serialize(serializer)
-    }
-}
-
-pub async fn send<C, T>(stream: &mut TcpStream, command: C, data: Value) -> Result<T>
+pub async fn send<C, D, T>(stream: &mut TcpStream, command: C, data: D) -> Result<T>
 where
     C: Into<String> + Send,
+    D: Serialize + Send,
     T: DeserializeOwned + Debug,
 {
     let request_id = write(stream, command, data).await?;
@@ -98,9 +88,10 @@ where
     }
 }
 
-pub async fn write<C>(stream: &mut TcpStream, command: C, data: Value) -> Result<u32>
+pub async fn write<C, D>(stream: &mut TcpStream, command: C, data: D) -> Result<u32>
 where
     C: Into<String> + Send,
+    D: Serialize + Send,
 {
     let request = Command::new(command, data);
     let body = serde_json::to_string(&request).map_err(Error::ConvertJson)?;
