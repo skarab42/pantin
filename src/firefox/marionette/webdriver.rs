@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tokio::net::TcpStream;
 
@@ -14,7 +14,36 @@ pub struct NewSession {
 }
 
 impl NewSession {
-    pub async fn send(stream: &mut TcpStream) -> request::Result<Self> {
-        request::send(stream, "WebDriver:NewSession", ()).await
+    pub async fn send(
+        stream: &mut TcpStream,
+        capabilities: Option<NewSessionCapabilities>,
+    ) -> request::Result<Self> {
+        request::send(stream, "WebDriver:NewSession", capabilities).await
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct WindowRect {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<u16>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SetWindowRect {
+    pub x: u16,
+    pub y: u16,
+    pub width: u16,
+    pub height: u16,
+}
+
+impl SetWindowRect {
+    pub async fn send(stream: &mut TcpStream, window_rect: WindowRect) -> request::Result<Self> {
+        request::send(stream, "WebDriver:SetWindowRect", window_rect).await
     }
 }

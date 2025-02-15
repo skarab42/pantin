@@ -13,7 +13,10 @@ async fn main() -> Result<()> {
 
     info!("Starting...");
 
-    let firefox = Browser::open().await?;
+    let mut firefox = Browser::open().await?;
+
+    let size = firefox.resize(200, 100).await?;
+    info!("Resized to {size:?}");
 
     info!("Press [CTRL+C] to exit gracefully.");
     pantin_lib::signal::shutdown().await?;

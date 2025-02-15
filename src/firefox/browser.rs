@@ -80,6 +80,12 @@ impl Browser {
         self.process.status()
     }
 
+    pub async fn resize(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
+        let rect = self.marionette.set_window_size(width, height).await?;
+
+        Ok((rect.width, rect.height))
+    }
+
     #[instrument(name = "Browser::close",skip(self), fields(uuid = ?self.uuid))]
     pub async fn close(mut self) -> Result<ChildStatus> {
         debug!("Closing browser instance...");

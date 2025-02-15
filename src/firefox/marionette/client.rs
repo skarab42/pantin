@@ -37,13 +37,34 @@ impl Client {
         debug!("Creating a new Marionette Client instance...");
         let mut stream = connect(address, 2000, 100).await?;
         let handshake = handshake::Handshake::read_response(&mut stream).await?;
-        let session = webdriver::NewSession::send(&mut stream).await?;
+        let session = webdriver::NewSession::send(&mut stream, None).await?;
 
         Ok(Self {
             stream,
             handshake,
             session,
         })
+    }
+
+    pub async fn set_window_rect(
+        &mut self,
+        window_rect: webdriver::WindowRect,
+    ) -> request::Result<webdriver::SetWindowRect> {
+        webdriver::SetWindowRect::send(&mut self.stream, window_rect).await
+    }
+
+    pub async fn set_window_size(
+        &mut self,
+        width: u16,
+        height: u16,
+    ) -> request::Result<webdriver::SetWindowRect> {
+        self.set_window_rect(webdriver::WindowRect {
+            x: None,
+            y: None,
+            width: Some(width),
+            height: Some(height),
+        })
+        .await
     }
 }
 
