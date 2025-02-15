@@ -16,7 +16,7 @@ pub struct NewSession {
 impl NewSession {
     pub async fn send(
         stream: &mut TcpStream,
-        capabilities: Option<NewSessionCapabilities>,
+        capabilities: Option<&NewSessionCapabilities>,
     ) -> request::Result<Self> {
         request::send(stream, "WebDriver:NewSession", capabilities).await
     }
@@ -43,7 +43,7 @@ pub struct SetWindowRect {
 }
 
 impl SetWindowRect {
-    pub async fn send(stream: &mut TcpStream, window_rect: WindowRect) -> request::Result<Self> {
+    pub async fn send(stream: &mut TcpStream, window_rect: &WindowRect) -> request::Result<Self> {
         request::send(stream, "WebDriver:SetWindowRect", window_rect).await
     }
 }
@@ -59,7 +59,10 @@ pub struct Navigate {
 }
 
 impl Navigate {
-    pub async fn send(stream: &mut TcpStream, location: NavigateLocation) -> request::Result<Self> {
+    pub async fn send(
+        stream: &mut TcpStream,
+        location: &NavigateLocation,
+    ) -> request::Result<Self> {
         request::send(stream, "WebDriver:Navigate", location).await
     }
 }

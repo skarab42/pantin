@@ -48,7 +48,7 @@ impl Client {
 
     pub async fn set_window_rect(
         &mut self,
-        window_rect: webdriver::WindowRect,
+        window_rect: &webdriver::WindowRect,
     ) -> request::Result<webdriver::SetWindowRect> {
         webdriver::SetWindowRect::send(&mut self.stream, window_rect).await
     }
@@ -58,7 +58,7 @@ impl Client {
         width: u16,
         height: u16,
     ) -> request::Result<webdriver::SetWindowRect> {
-        self.set_window_rect(webdriver::WindowRect {
+        self.set_window_rect(&webdriver::WindowRect {
             x: None,
             y: None,
             width: Some(width),
@@ -69,7 +69,7 @@ impl Client {
 
     pub async fn navigate(
         &mut self,
-        location: webdriver::NavigateLocation,
+        location: &webdriver::NavigateLocation,
     ) -> request::Result<webdriver::Navigate> {
         webdriver::Navigate::send(&mut self.stream, location).await
     }

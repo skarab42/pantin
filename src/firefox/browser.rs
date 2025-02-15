@@ -92,7 +92,7 @@ impl Browser {
     #[instrument(name = "Browser::navigate",skip(self), fields(uuid = ?self.uuid))]
     pub async fn navigate<U: Into<String> + Send + Debug>(&mut self, url: U) -> Result<()> {
         self.marionette
-            .navigate(webdriver::NavigateLocation { url: url.into() })
+            .navigate(&webdriver::NavigateLocation { url: url.into() })
             .await?;
 
         Ok(())
