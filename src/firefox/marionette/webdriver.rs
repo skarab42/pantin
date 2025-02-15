@@ -47,3 +47,19 @@ impl SetWindowRect {
         request::send(stream, "WebDriver:SetWindowRect", window_rect).await
     }
 }
+
+#[derive(Debug, Serialize)]
+pub struct NavigateLocation {
+    pub url: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Navigate {
+    pub value: (),
+}
+
+impl Navigate {
+    pub async fn send(stream: &mut TcpStream, location: NavigateLocation) -> request::Result<Self> {
+        request::send(stream, "WebDriver:Navigate", location).await
+    }
+}

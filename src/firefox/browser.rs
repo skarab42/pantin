@@ -1,9 +1,11 @@
+use std::fmt::Debug;
 use std::result;
 
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
+use crate::firefox::marionette::webdriver;
 use crate::{
     firefox::{marionette, marionette::Marionette, profile, Profile},
     process,
@@ -43,7 +45,7 @@ impl Browser {
             "firefox",
             [
                 "--private",
-                "--headless",
+                // "--headless",
                 "--no-remote",
                 "--marionette",
                 "--new-instance",
@@ -80,10 +82,20 @@ impl Browser {
         self.process.status()
     }
 
+    #[instrument(name = "Browser::resize",skip(self), fields(uuid = ?self.uuid))]
     pub async fn resize(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
         let rect = self.marionette.set_window_size(width, height).await?;
 
         Ok((rect.width, rect.height))
+    }
+
+    #[instrument(name = "Browser::navigate",skip(self), fields(uuid = ?self.uuid))]
+    pub async fn navigate<U: Into<String> + Send + Debug>(&mut self, url: U) -> Result<()> {
+        self.marionette
+            .navigate(webdriver::NavigateLocation { url: url.into() })
+            .await?;
+
+        Ok(())
     }
 
     #[instrument(name = "Browser::close",skip(self), fields(uuid = ?self.uuid))]

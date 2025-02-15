@@ -66,6 +66,13 @@ impl Client {
         })
         .await
     }
+
+    pub async fn navigate(
+        &mut self,
+        location: webdriver::NavigateLocation,
+    ) -> request::Result<webdriver::Navigate> {
+        webdriver::Navigate::send(&mut self.stream, location).await
+    }
 }
 
 async fn connect(address: &SocketAddr, timeout_ms: u64, interval_ms: u64) -> Result<TcpStream> {
