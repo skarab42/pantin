@@ -66,3 +66,92 @@ impl Navigate {
         request::send(stream, "WebDriver:Navigate", location).await
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum FindElementUsing {
+    CssSelector,
+    XPath,
+}
+
+impl From<FindElementUsing> for String {
+    fn from(value: FindElementUsing) -> Self {
+        match value {
+            FindElementUsing::CssSelector => "css selector".to_string(),
+            FindElementUsing::XPath => "xpath".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Element {
+    #[serde(rename = "element-6066-11e4-a52e-4f735466cecf")]
+    pub id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FindElementSettings {
+    pub using: FindElementUsing,
+    pub value: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FindElement {
+    pub value: Element,
+}
+
+impl FindElement {
+    pub async fn send(
+        stream: &mut TcpStream,
+        settings: &FindElementSettings,
+    ) -> request::Result<Self> {
+        request::send(stream, "WebDriver:FindElement", settings).await
+    }
+}
+
+#[must_use]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TakeScreenshotOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    full: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    scroll: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    element_id: Option<String>,
+}
+
+impl TakeScreenshotOptions {
+    pub const fn new(full: Option<bool>, scroll: Option<bool>, element_id: Option<String>) -> Self {
+        Self {
+            full,
+            scroll,
+            element_id,
+        }
+    }
+
+    pub const fn full() -> Self {
+        Self::new(Some(true), Some(false), None)
+    }
+
+    pub const fn viewport() -> Self {
+        Self::new(Some(false), Some(false), None)
+    }
+
+    pub const fn element(element_id: String, scroll: Option<bool>) -> Self {
+        Self::new(Some(false), scroll, Some(element_id))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TakeScreenshot {
+    #[serde(rename = "value")]
+    pub base64_png: String,
+}
+
+impl TakeScreenshot {
+    pub async fn send(
+        stream: &mut TcpStream,
+        options: &TakeScreenshotOptions,
+    ) -> request::Result<Self> {
+        request::send(stream, "WebDriver:TakeScreenshot", options).await
+    }
+}

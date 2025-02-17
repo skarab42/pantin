@@ -20,6 +20,9 @@ async fn main() -> Result<()> {
 
     firefox.navigate("https://www.infomaniak.ch").await?;
 
+    let bytes = firefox.screenshot().await?;
+    info!("PNG size {}", bytes.len());
+
     info!("Press [CTRL+C] to exit gracefully.");
     pantin_lib::signal::shutdown().await?;
 

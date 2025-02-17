@@ -1,13 +1,16 @@
-use std::fmt::Debug;
-use std::result;
+use std::{fmt::Debug, result};
 
+use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::firefox::marionette::webdriver;
 use crate::{
-    firefox::{marionette, marionette::Marionette, profile, Profile},
+    firefox::{
+        marionette,
+        marionette::{webdriver, Marionette},
+        profile, Profile,
+    },
     process,
     process::{ChildStatus, ChildWrapper},
 };
@@ -24,6 +27,8 @@ pub enum Error {
     MarionetteRequest(#[from] marionette::request::Error),
     #[error("get child status failed: {0}")]
     ChildStatus(String),
+    #[error("decode screenshot failed: {0}")]
+    DecodeScreenshot(#[source] DecodeError),
 }
 
 pub type Result<T, E = Error> = result::Result<T, E>;
@@ -96,6 +101,18 @@ impl Browser {
             .await?;
 
         Ok(())
+    }
+
+    #[instrument(name = "Browser::screenshot",skip(self), fields(uuid = ?self.uuid))]
+    pub async fn screenshot(&mut self) -> Result<Vec<u8>> {
+        let webdriver::TakeScreenshot { base64_png } = self
+            .marionette
+            .take_screenshot(&webdriver::TakeScreenshotOptions::viewport())
+            .await?;
+
+        BASE64_STANDARD
+            .decode(base64_png)
+            .map_err(Error::DecodeScreenshot)
     }
 
     #[instrument(name = "Browser::close",skip(self), fields(uuid = ?self.uuid))]

@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::firefox::marionette::{handshake, request, webdriver};
+use crate::firefox::marionette::{handshake, request, webdriver, webdriver::TakeScreenshotOptions};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -72,6 +72,13 @@ impl Client {
         location: &webdriver::NavigateLocation,
     ) -> request::Result<webdriver::Navigate> {
         webdriver::Navigate::send(&mut self.stream, location).await
+    }
+
+    pub async fn take_screenshot(
+        &mut self,
+        options: &TakeScreenshotOptions,
+    ) -> request::Result<webdriver::TakeScreenshot> {
+        webdriver::TakeScreenshot::send(&mut self.stream, options).await
     }
 }
 
