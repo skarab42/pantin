@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::firefox::marionette::{handshake, request, webdriver};
+use crate::marionette::{handshake, request, webdriver};
 
 #[derive(Error, Debug)]
 pub enum Error {

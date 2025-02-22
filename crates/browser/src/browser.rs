@@ -6,7 +6,7 @@ use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::firefox::{
+use crate::{
     marionette,
     marionette::{webdriver, Marionette},
     profile, Profile,

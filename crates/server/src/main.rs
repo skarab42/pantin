@@ -6,7 +6,7 @@ mod logger;
 mod signal;
 
 use color_eyre::eyre::Result;
-use pantin_browser::firefox::Browser;
+use pantin_browser::Browser;
 use tracing::info;
 
 #[tokio::main]
@@ -16,20 +16,20 @@ async fn main() -> Result<()> {
 
     info!("Starting...");
 
-    let mut firefox = Browser::open().await?;
+    let mut browser = Browser::open().await?;
 
-    let size = firefox.resize(800, 600).await?;
+    let size = browser.resize(800, 600).await?;
     info!("Resized to {size:?}");
 
-    firefox.navigate("https://www.infomaniak.ch").await?;
+    browser.navigate("https://www.infomaniak.ch").await?;
 
-    let bytes = firefox.screenshot().await?;
+    let bytes = browser.screenshot().await?;
     info!("PNG size {}", bytes.len());
 
     info!("Press [CTRL+C] to exit gracefully.");
     signal::shutdown().await?;
 
-    firefox.close().await?;
+    browser.close().await?;
 
     info!("Exited gracefully !");
 
