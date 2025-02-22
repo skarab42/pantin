@@ -1,26 +1,57 @@
-use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
+
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tokio::net::TcpStream;
 
 use crate::firefox::marionette::request;
 
+pub trait Command {
+    type Parameters: Serialize + Sync;
+    type Response: DeserializeOwned + Debug;
+
+    fn name(&self) -> &'static str;
+    fn parameters(&self) -> &Self::Parameters;
+}
+
+// ---
+
 pub type NewSessionCapabilities = Map<String, Value>;
+pub type NewSessionParameters = Option<NewSessionCapabilities>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NewSession {
+pub struct NewSessionResponse {
     pub session_id: String,
-    pub capabilities: NewSessionCapabilities,
+    pub capabilities: Map<String, Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NewSession {
+    parameters: NewSessionParameters,
 }
 
 impl NewSession {
-    pub async fn send(
-        stream: &mut TcpStream,
-        capabilities: Option<&NewSessionCapabilities>,
-    ) -> request::Result<Self> {
-        request::send(stream, "WebDriver:NewSession", capabilities).await
+    #[must_use]
+    pub const fn new(parameters: NewSessionParameters) -> Self {
+        Self { parameters }
     }
 }
+
+impl Command for NewSession {
+    type Parameters = NewSessionParameters;
+    type Response = NewSessionResponse;
+
+    fn name(&self) -> &'static str {
+        "WebDriver:NewSession"
+    }
+
+    fn parameters(&self) -> &Self::Parameters {
+        &self.parameters
+    }
+}
+
+// ---
 
 #[derive(Debug, Serialize)]
 pub struct WindowRect {

@@ -29,7 +29,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 pub struct Client {
     stream: TcpStream,
     handshake: handshake::Handshake,
-    session: webdriver::NewSession,
+    session: webdriver::NewSessionResponse,
 }
 
 impl Client {
@@ -37,7 +37,7 @@ impl Client {
         debug!("Creating a new Marionette Client instance...");
         let mut stream = connect(address, 2000, 100).await?;
         let handshake = handshake::Handshake::read_response(&mut stream).await?;
-        let session = webdriver::NewSession::send(&mut stream, None).await?;
+        let session = send(&mut stream, webdriver::NewSession::new(None)).await?;
 
         Ok(Self {
             stream,
@@ -80,6 +80,13 @@ impl Client {
     ) -> request::Result<webdriver::TakeScreenshot> {
         webdriver::TakeScreenshot::send(&mut self.stream, options).await
     }
+}
+
+pub async fn send<C>(stream: &mut TcpStream, command: C) -> request::Result<C::Response>
+where
+    C: webdriver::Command + Send,
+{
+    request::send(stream, command.name(), command.parameters()).await
 }
 
 async fn connect(address: &SocketAddr, timeout_ms: u64, interval_ms: u64) -> Result<TcpStream> {
