@@ -1,6 +1,6 @@
 [package]
 name = "pantin_process"
-description = "Spawn process and kill on drop"
+description = "Pantin process"
 readme = "../../README.md"
 version = "0.1.0"
 edition = "2021"
@@ -14,13 +14,7 @@ name = "pantin_process"
 path = "src/lib.rs"
 
 [dependencies]
+process-wrap = { version = "8.2.0", features = ["tokio1"] }
 thiserror = "2.0.11"
+tokio = "1.43.0"
 tracing = "0.1.41"
-
-[dependencies.process-wrap]
-version = "8.2.0"
-features = ["tokio1"]
-
-[dependencies.tokio]
-version = "1.43.0"
-features = ["fs", "macros", "net", "rt-multi-thread", "signal", "time"]

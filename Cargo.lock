@@ -373,7 +373,6 @@ dependencies = [
  "base64",
  "pantin_macros",
  "pantin_process",
- "process-wrap",
  "serde",
  "serde_json",
  "temp-dir",
