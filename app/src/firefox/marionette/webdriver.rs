@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use pantin_macros::WebDriverCommand;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tokio::net::TcpStream;
@@ -26,29 +27,9 @@ pub struct NewSessionResponse {
     pub capabilities: Map<String, Value>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, WebDriverCommand)]
 pub struct NewSession {
     parameters: NewSessionParameters,
-}
-
-impl NewSession {
-    #[must_use]
-    pub const fn new(parameters: NewSessionParameters) -> Self {
-        Self { parameters }
-    }
-}
-
-impl Command for NewSession {
-    type Parameters = NewSessionParameters;
-    type Response = NewSessionResponse;
-
-    fn name(&self) -> &'static str {
-        "WebDriver:NewSession"
-    }
-
-    fn parameters(&self) -> &Self::Parameters {
-        &self.parameters
-    }
 }
 
 // ---

@@ -50,7 +50,7 @@ impl Browser {
             "firefox",
             [
                 "--private",
-                // "--headless",
+                "--headless",
                 "--no-remote",
                 "--marionette",
                 "--new-instance",

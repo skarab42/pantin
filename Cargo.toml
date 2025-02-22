@@ -1,43 +1,6 @@
-[package]
-name = "pantin"
-description = "A screenshot microservice"
-readme = "README.md"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-repository = "https://github.com/skarab42/pantin"
-keywords = ["firefox", "marionette", "screenshot", "microservice"]
-categories = ["multimedia::images", "web-programming::http-server"]
-
-[[bin]]
-name = "pantin"
-path = "src/main.rs"
-
-[lib]
-name = "pantin_lib"
-path = "src/lib.rs"
-
-[dependencies]
-base64 = "0.22.1"
-color-eyre = "0.6.3"
-temp-dir = "0.1.14"
-thiserror = "2.0.11"
-tracing = "0.1.41"
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.138"
-
-[dependencies.process-wrap]
-version = "8.2.0"
-features = ["tokio1"]
-
-[dependencies.tokio]
-version = "1.43.0"
-features = ["fs", "macros", "net", "rt-multi-thread", "signal", "time"]
-
-[dependencies.tracing-subscriber]
-version = "0.3.19"
-features = ["env-filter"]
-
-[dependencies.uuid]
-version = "1.13.1"
-features = ["v4"]
+[workspace]
+resolver = "2"
+members = [
+    "app",
+    "macros"
+]
