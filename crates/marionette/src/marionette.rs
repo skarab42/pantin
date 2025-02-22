@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::marionette::{handshake, request, webdriver};
+use crate::{handshake, request, webdriver};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -26,13 +26,13 @@ pub enum Error {
 pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[derive(Debug)]
-pub struct Client {
+pub struct Marionette {
     stream: TcpStream,
     handshake: handshake::HandshakeResponse,
     session: webdriver::NewSessionResponse,
 }
 
-impl Client {
+impl Marionette {
     pub async fn new(address: &SocketAddr) -> Result<Self> {
         debug!("Creating a new Marionette Client instance...");
         let mut stream = connect(address, 2000, 100).await?;

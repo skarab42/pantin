@@ -1,16 +1,13 @@
 use std::{fmt::Debug, result};
 
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
+use pantin_marionette::{webdriver, Marionette};
 use pantin_process::{ChildStatus, ChildWrapper};
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::{
-    marionette,
-    marionette::{webdriver, Marionette},
-    profile, Profile,
-};
+use crate::{profile, profile::Profile};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -19,9 +16,9 @@ pub enum Error {
     #[error(transparent)]
     Process(#[from] pantin_process::Error),
     #[error(transparent)]
-    MarionetteClient(#[from] marionette::client::Error),
+    Marionette(#[from] pantin_marionette::Error),
     #[error(transparent)]
-    MarionetteRequest(#[from] marionette::request::Error),
+    MarionetteRequest(#[from] pantin_marionette::request::Error),
     #[error("get child status failed: {0}")]
     ChildStatus(String),
     #[error("decode screenshot failed: {0}")]

@@ -1,6 +1,6 @@
 [package]
-name = "pantin_browser"
-description = "Patin library"
+name = "pantin_marionette"
+description = "Patin marionette"
 readme = "../../README.md"
 version = "0.1.0"
 edition = "2021"
@@ -10,17 +10,15 @@ keywords = ["firefox", "marionette", "screenshot", "microservice"]
 categories = ["multimedia::images", "web-programming::http-server"]
 
 [lib]
-name = "pantin_browser"
+name = "pantin_marionette"
 path = "src/lib.rs"
 
 [dependencies]
-base64 = "0.22.1"
-temp-dir = "0.1.14"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
 thiserror = "2.0.11"
-tokio = { version = "1.43.0", features = ["fs", "net"] }
+tokio = { version = "1.43.0", features = ["io-util", "net", "time"] }
 tracing = "0.1.41"
-uuid = { version = "1.13.1", features = ["v4"] }
 
 # workspace dependencies
-pantin_marionette = { path = "../marionette" }
-pantin_process = { path = "../process" }
+pantin_macros = { path = "../macros" }

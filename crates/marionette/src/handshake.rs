@@ -5,7 +5,7 @@ use thiserror::Error;
 use tokio::net::TcpStream;
 use tracing::{debug, error};
 
-use crate::marionette::response;
+use crate::response;
 
 #[derive(Error, Debug)]
 pub enum Error {

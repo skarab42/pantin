@@ -371,10 +371,8 @@ name = "pantin_browser"
 version = "0.1.0"
 dependencies = [
  "base64",
- "pantin_macros",
+ "pantin_marionette",
  "pantin_process",
- "serde",
- "serde_json",
  "temp-dir",
  "thiserror",
  "tokio",
@@ -389,6 +387,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pantin_marionette"
+version = "0.1.0"
+dependencies = [
+ "pantin_macros",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

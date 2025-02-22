@@ -4,7 +4,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use tracing::debug;
 
-use crate::marionette::{command::Command, response};
+use crate::{command::Command, response};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

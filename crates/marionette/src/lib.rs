@@ -2,7 +2,11 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::missing_errors_doc, clippy::multiple_crate_versions)]
 
-pub mod browser;
-pub mod profile;
+pub mod command;
+pub mod handshake;
+pub mod marionette;
+pub mod request;
+pub mod response;
+pub mod webdriver;
 
-pub use browser::{Browser, Error};
+pub use marionette::{Error, Marionette};
