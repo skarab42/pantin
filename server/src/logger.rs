@@ -12,7 +12,7 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
-pub fn setup() -> Result<()> {
+pub fn install() -> Result<()> {
     let log_level = var("PANTIN_LOG_LEVEL").unwrap_or_else(|_| "info".into());
     let env_filter = EnvFilter::new(format!("none,pantin={log_level}"));
     let format_layer = layer().with_file(true).with_line_number(true);

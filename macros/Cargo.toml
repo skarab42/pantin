@@ -1,6 +1,6 @@
 [package]
 name = "pantin_macros"
-description = "Some macros for the pantin_lib"
+description = "Some macros for the pantin_lib crate"
 readme = "../README.md"
 version = "0.1.0"
 edition = "2021"

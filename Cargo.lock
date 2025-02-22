@@ -367,11 +367,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
-name = "pantin"
+name = "pantin_lib"
 version = "0.1.0"
 dependencies = [
  "base64",
- "color-eyre",
  "pantin_macros",
  "process-wrap",
  "serde",
@@ -380,7 +379,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -391,6 +389,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pantin_server"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "pantin_lib",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

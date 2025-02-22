@@ -2,6 +2,9 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::multiple_crate_versions)]
 
+mod logger;
+mod signal;
+
 use color_eyre::eyre::Result;
 use pantin_lib::firefox::Browser;
 use tracing::info;
@@ -9,7 +12,7 @@ use tracing::info;
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
-    pantin_lib::tracing::setup()?;
+    logger::install()?;
 
     info!("Starting...");
 
@@ -24,7 +27,7 @@ async fn main() -> Result<()> {
     info!("PNG size {}", bytes.len());
 
     info!("Press [CTRL+C] to exit gracefully.");
-    pantin_lib::signal::shutdown().await?;
+    signal::shutdown().await?;
 
     firefox.close().await?;
 
