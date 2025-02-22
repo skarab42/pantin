@@ -28,7 +28,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 #[derive(Debug)]
 pub struct Marionette {
     stream: TcpStream,
-    handshake: handshake::HandshakeResponse,
+    handshake: handshake::Handshake,
     session: webdriver::NewSessionResponse,
 }
 
@@ -65,8 +65,8 @@ where
     request::send(stream, command.name(), &command.parameters()).await
 }
 
-async fn read_handshake(stream: &mut TcpStream) -> handshake::Result<handshake::HandshakeResponse> {
-    handshake::HandshakeResponse::read(stream).await
+async fn read_handshake(stream: &mut TcpStream) -> handshake::Result<handshake::Handshake> {
+    handshake::Handshake::read(stream).await
 }
 
 async fn connect(address: &SocketAddr, timeout_ms: u64, interval_ms: u64) -> Result<TcpStream> {
