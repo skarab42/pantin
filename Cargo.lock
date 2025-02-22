@@ -372,6 +372,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "pantin_macros",
+ "pantin_process",
  "process-wrap",
  "serde",
  "serde_json",
@@ -389,6 +390,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pantin_process"
+version = "0.1.0"
+dependencies = [
+ "process-wrap",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

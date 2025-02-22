@@ -1,6 +1,6 @@
 [package]
-name = "pantin_lib"
-description = "Some libraries for the pantin_server crate"
+name = "pantin_process"
+description = "Spawn process and kill on drop"
 readme = "../../README.md"
 version = "0.1.0"
 edition = "2021"
@@ -10,31 +10,17 @@ keywords = ["firefox", "marionette", "screenshot", "microservice"]
 categories = ["multimedia::images", "web-programming::http-server"]
 
 [lib]
-name = "pantin_lib"
+name = "pantin_process"
 path = "src/lib.rs"
 
 [dependencies]
-base64 = "0.22.1"
-temp-dir = "0.1.14"
 thiserror = "2.0.11"
 tracing = "0.1.41"
-serde_json = "1.0.138"
-
-pantin_macros = { path = "../macros" }
-pantin_process = { path = "../process" }
 
 [dependencies.process-wrap]
 version = "8.2.0"
 features = ["tokio1"]
 
-[dependencies.serde]
-version = "1.0.217"
-features = ["derive"]
-
 [dependencies.tokio]
 version = "1.43.0"
 features = ["fs", "macros", "net", "rt-multi-thread", "signal", "time"]
-
-[dependencies.uuid]
-version = "1.13.1"
-features = ["v4"]

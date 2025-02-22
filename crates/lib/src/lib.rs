@@ -3,4 +3,3 @@
 #![allow(clippy::missing_errors_doc, clippy::multiple_crate_versions)]
 
 pub mod firefox;
-pub mod process;

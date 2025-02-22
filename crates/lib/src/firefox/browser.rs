@@ -1,18 +1,15 @@
 use std::{fmt::Debug, result};
 
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
+use pantin_process::{ChildStatus, ChildWrapper};
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::{
-    firefox::{
-        marionette,
-        marionette::{webdriver, Marionette},
-        profile, Profile,
-    },
-    process,
-    process::{ChildStatus, ChildWrapper},
+use crate::firefox::{
+    marionette,
+    marionette::{webdriver, Marionette},
+    profile, Profile,
 };
 
 #[derive(Error, Debug)]
@@ -20,7 +17,7 @@ pub enum Error {
     #[error(transparent)]
     Profile(#[from] profile::Error),
     #[error(transparent)]
-    Process(#[from] process::Error),
+    Process(#[from] pantin_process::Error),
     #[error(transparent)]
     MarionetteClient(#[from] marionette::client::Error),
     #[error(transparent)]
