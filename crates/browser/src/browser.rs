@@ -2,7 +2,7 @@ use std::{fmt::Debug, result};
 
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use pantin_marionette::{webdriver, Marionette};
-use pantin_process::{ChildStatus, ChildWrapper};
+use pantin_process::{Process, Status};
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
@@ -31,7 +31,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 pub struct Browser {
     uuid: Uuid,
     profile: Profile,
-    process: ChildWrapper,
+    process: Process,
     marionette: Marionette,
 }
 
@@ -40,7 +40,7 @@ impl Browser {
     pub async fn new(uuid: Uuid) -> Result<Self> {
         debug!("Opening a new Browser instance...");
         let profile = Profile::new().await?;
-        let process = ChildWrapper::new(
+        let process = Process::new(
             "firefox",
             [
                 "--private",
@@ -77,7 +77,7 @@ impl Browser {
         self.process.id()
     }
 
-    pub fn status(&mut self) -> ChildStatus {
+    pub fn status(&mut self) -> Status {
         self.process.status()
     }
 
@@ -124,15 +124,15 @@ impl Browser {
     }
 
     #[instrument(name = "Browser::close", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn close(mut self) -> Result<ChildStatus> {
+    pub async fn close(mut self) -> Result<Status> {
         debug!("Closing browser instance...");
         let status = match self.process.status() {
-            ChildStatus::Alive => {
+            Status::Alive => {
                 self.process.kill().await?;
 
                 Ok(self.process.status())
             },
-            ChildStatus::Error(error) => Err(Error::ChildStatus(error)),
+            Status::Error(error) => Err(Error::ChildStatus(error)),
             status => Ok(status),
         };
         debug!("Browser instance closed with status: {status:?}");

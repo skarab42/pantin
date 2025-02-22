@@ -23,7 +23,7 @@ pub enum Error {
 pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum ChildStatus {
+pub enum Status {
     Alive,
     Exiting,
     Exited(i32),
@@ -31,11 +31,11 @@ pub enum ChildStatus {
 }
 
 #[derive(Debug)]
-pub struct ChildWrapper {
+pub struct Process {
     child: Box<dyn TokioChildWrapper>,
 }
 
-impl ChildWrapper {
+impl Process {
     pub fn new<P, A, I>(program: P, args: A) -> Result<Self>
     where
         P: AsRef<OsStr>,
@@ -77,13 +77,11 @@ impl ChildWrapper {
         self.child.id()
     }
 
-    pub fn status(&mut self) -> ChildStatus {
+    pub fn status(&mut self) -> Status {
         match self.child.try_wait() {
-            Ok(None) => ChildStatus::Alive,
-            Ok(Some(status)) => status
-                .code()
-                .map_or(ChildStatus::Exiting, ChildStatus::Exited),
-            Err(error) => ChildStatus::Error(error.to_string()),
+            Ok(None) => Status::Alive,
+            Ok(Some(status)) => status.code().map_or(Status::Exiting, Status::Exited),
+            Err(error) => Status::Error(error.to_string()),
         }
     }
 
