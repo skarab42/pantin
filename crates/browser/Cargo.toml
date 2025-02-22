@@ -1,5 +1,5 @@
 [package]
-name = "pantin_lib"
+name = "pantin_browser"
 description = "Patin library"
 readme = "../../README.md"
 version = "0.1.0"
@@ -10,7 +10,7 @@ keywords = ["firefox", "marionette", "screenshot", "microservice"]
 categories = ["multimedia::images", "web-programming::http-server"]
 
 [lib]
-name = "pantin_lib"
+name = "pantin_browser"
 path = "src/lib.rs"
 
 [dependencies]

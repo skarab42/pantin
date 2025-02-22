@@ -6,7 +6,7 @@ mod logger;
 mod signal;
 
 use color_eyre::eyre::Result;
-use pantin_lib::firefox::Browser;
+use pantin_browser::firefox::Browser;
 use tracing::info;
 
 #[tokio::main]
