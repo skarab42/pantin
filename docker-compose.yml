@@ -1,0 +1,9 @@
+services:
+  server:
+    build: .
+    environment:
+      - PANTIN_LOG_LEVEL=trace
+      - PANTIN_SERVER_HOST=0.0.0.0
+      - PANTIN_SERVER_PORT=4242
+    ports:
+      - "4242:4242"
