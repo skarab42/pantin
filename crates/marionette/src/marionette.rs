@@ -46,27 +46,33 @@ impl Marionette {
         })
     }
 
-    pub async fn send<C>(&mut self, command: &C) -> request::Result<C::Response>
+    pub async fn send<C>(&mut self, command: &C) -> Result<C::Response>
     where
         C: webdriver::Command + Send + Sync,
     {
-        request::send(&mut self.stream, command.name(), &command.parameters()).await
+        request::send(&mut self.stream, command.name(), &command.parameters())
+            .await
+            .map_err(Error::Request)
     }
 }
 
-async fn new_session(stream: &mut TcpStream) -> request::Result<webdriver::NewSessionResponse> {
+async fn new_session(stream: &mut TcpStream) -> Result<webdriver::NewSessionResponse> {
     send(stream, &webdriver::NewSession::new(None)).await
 }
 
-async fn send<C>(stream: &mut TcpStream, command: &C) -> request::Result<C::Response>
+async fn send<C>(stream: &mut TcpStream, command: &C) -> Result<C::Response>
 where
     C: webdriver::Command + Send + Sync,
 {
-    request::send(stream, command.name(), &command.parameters()).await
+    request::send(stream, command.name(), &command.parameters())
+        .await
+        .map_err(Error::Request)
 }
 
-async fn read_handshake(stream: &mut TcpStream) -> handshake::Result<handshake::Handshake> {
-    handshake::Handshake::read(stream).await
+async fn read_handshake(stream: &mut TcpStream) -> Result<handshake::Handshake> {
+    handshake::Handshake::read(stream)
+        .await
+        .map_err(Error::Handshake)
 }
 
 async fn connect(address: &SocketAddr, timeout_ms: u64, interval_ms: u64) -> Result<TcpStream> {
