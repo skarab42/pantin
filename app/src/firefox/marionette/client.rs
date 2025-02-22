@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{debug, error};
 
-use crate::firefox::marionette::{handshake, request, webdriver, webdriver::TakeScreenshotOptions};
+use crate::firefox::marionette::{handshake, request, webdriver};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -28,7 +28,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 #[derive(Debug)]
 pub struct Client {
     stream: TcpStream,
-    handshake: handshake::Handshake,
+    handshake: handshake::HandshakeResponse,
     session: webdriver::NewSessionResponse,
 }
 
@@ -36,8 +36,8 @@ impl Client {
     pub async fn new(address: &SocketAddr) -> Result<Self> {
         debug!("Creating a new Marionette Client instance...");
         let mut stream = connect(address, 2000, 100).await?;
-        let handshake = handshake::Handshake::read_response(&mut stream).await?;
-        let session = send(&mut stream, webdriver::NewSession::new(None)).await?;
+        let handshake = read_handshake(&mut stream).await?;
+        let session = new_session(&mut stream).await?;
 
         Ok(Self {
             stream,
@@ -46,47 +46,27 @@ impl Client {
         })
     }
 
-    pub async fn set_window_rect(
-        &mut self,
-        window_rect: &webdriver::WindowRect,
-    ) -> request::Result<webdriver::SetWindowRect> {
-        webdriver::SetWindowRect::send(&mut self.stream, window_rect).await
-    }
-
-    pub async fn set_window_size(
-        &mut self,
-        width: u16,
-        height: u16,
-    ) -> request::Result<webdriver::SetWindowRect> {
-        self.set_window_rect(&webdriver::WindowRect {
-            x: None,
-            y: None,
-            width: Some(width),
-            height: Some(height),
-        })
-        .await
-    }
-
-    pub async fn navigate(
-        &mut self,
-        location: &webdriver::NavigateLocation,
-    ) -> request::Result<webdriver::Navigate> {
-        webdriver::Navigate::send(&mut self.stream, location).await
-    }
-
-    pub async fn take_screenshot(
-        &mut self,
-        options: &TakeScreenshotOptions,
-    ) -> request::Result<webdriver::TakeScreenshot> {
-        webdriver::TakeScreenshot::send(&mut self.stream, options).await
+    pub async fn send<C>(&mut self, command: &C) -> request::Result<C::Response>
+    where
+        C: webdriver::Command + Send + Sync,
+    {
+        request::send(&mut self.stream, command.name(), &command.parameters()).await
     }
 }
 
-pub async fn send<C>(stream: &mut TcpStream, command: C) -> request::Result<C::Response>
+async fn new_session(stream: &mut TcpStream) -> request::Result<webdriver::NewSessionResponse> {
+    send(stream, &webdriver::NewSession::new(None)).await
+}
+
+async fn send<C>(stream: &mut TcpStream, command: &C) -> request::Result<C::Response>
 where
-    C: webdriver::Command + Send,
+    C: webdriver::Command + Send + Sync,
 {
-    request::send(stream, command.name(), command.parameters()).await
+    request::send(stream, command.name(), &command.parameters()).await
+}
+
+async fn read_handshake(stream: &mut TcpStream) -> handshake::Result<handshake::HandshakeResponse> {
+    handshake::HandshakeResponse::read(stream).await
 }
 
 async fn connect(address: &SocketAddr, timeout_ms: u64, interval_ms: u64) -> Result<TcpStream> {

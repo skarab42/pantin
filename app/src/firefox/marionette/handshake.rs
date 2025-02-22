@@ -21,13 +21,14 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Handshake {
+#[allow(clippy::module_name_repetitions)]
+pub struct HandshakeResponse {
     pub marionette_protocol: u8,
     pub application_type: String,
 }
 
-impl Handshake {
-    pub async fn read_response(stream: &mut TcpStream) -> Result<Self> {
+impl HandshakeResponse {
+    pub async fn read(stream: &mut TcpStream) -> Result<Self> {
         debug!("Reading Handshake...");
         let json = response::read(stream).await?;
         let handshake: Self = response::parse_raw(json)?;

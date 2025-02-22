@@ -20,10 +20,10 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
-pub async fn write<C, D>(stream: &mut TcpStream, command: C, data: D) -> Result<u32>
+pub async fn write<C, D>(stream: &mut TcpStream, command: C, data: &D) -> Result<u32>
 where
     C: Into<String> + Send,
-    D: Serialize + Send,
+    D: Serialize + Send + Sync,
 {
     let request = Command::new_request(command, data);
     let body = serde_json::to_string(&request).map_err(Error::ConvertJson)?;
@@ -39,10 +39,10 @@ where
     Ok(request.id())
 }
 
-pub async fn send<C, D, T>(stream: &mut TcpStream, command: C, data: D) -> Result<T>
+pub async fn send<C, D, T>(stream: &mut TcpStream, command: C, data: &D) -> Result<T>
 where
     C: Into<String> + Send,
-    D: Serialize + Send,
+    D: Serialize + Send + Sync,
     T: DeserializeOwned + Debug,
 {
     let request_id = write(stream, command, data).await?;

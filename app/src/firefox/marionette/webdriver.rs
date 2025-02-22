@@ -3,9 +3,6 @@ use std::fmt::Debug;
 use pantin_macros::WebDriverCommand;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
-use tokio::net::TcpStream;
-
-use crate::firefox::marionette::request;
 
 pub trait Command {
     type Parameters: Serialize + Sync;
@@ -27,7 +24,7 @@ pub struct NewSessionResponse {
     pub capabilities: Map<String, Value>,
 }
 
-#[derive(Debug, Serialize, WebDriverCommand)]
+#[derive(Debug, WebDriverCommand)]
 pub struct NewSession {
     parameters: NewSessionParameters,
 }
@@ -35,7 +32,7 @@ pub struct NewSession {
 // ---
 
 #[derive(Debug, Serialize)]
-pub struct WindowRect {
+pub struct SetWindowRectParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,39 +44,38 @@ pub struct WindowRect {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SetWindowRect {
+pub struct SetWindowRectResponse {
     pub x: u16,
     pub y: u16,
     pub width: u16,
     pub height: u16,
 }
 
-impl SetWindowRect {
-    pub async fn send(stream: &mut TcpStream, window_rect: &WindowRect) -> request::Result<Self> {
-        request::send(stream, "WebDriver:SetWindowRect", window_rect).await
-    }
+#[derive(Debug, WebDriverCommand)]
+pub struct SetWindowRect {
+    parameters: SetWindowRectParameters,
 }
 
+// ---
+
 #[derive(Debug, Serialize)]
-pub struct NavigateLocation {
+pub struct NavigateParameters {
     pub url: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Navigate {
+pub struct NavigateResponse {
     pub value: (),
 }
 
-impl Navigate {
-    pub async fn send(
-        stream: &mut TcpStream,
-        location: &NavigateLocation,
-    ) -> request::Result<Self> {
-        request::send(stream, "WebDriver:Navigate", location).await
-    }
+#[derive(Debug, WebDriverCommand)]
+pub struct Navigate {
+    parameters: NavigateParameters,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+// ---
+
+#[derive(Debug, Serialize)]
 pub enum FindElementUsing {
     CssSelector,
     XPath,
@@ -94,35 +90,33 @@ impl From<FindElementUsing> for String {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct FindElementParameters {
+    pub using: FindElementUsing,
+    pub value: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Element {
     #[serde(rename = "element-6066-11e4-a52e-4f735466cecf")]
     pub id: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct FindElementSettings {
-    pub using: FindElementUsing,
-    pub value: String,
-}
-
 #[derive(Debug, Deserialize)]
-pub struct FindElement {
+pub struct FindElementResponse {
     pub value: Element,
 }
 
-impl FindElement {
-    pub async fn send(
-        stream: &mut TcpStream,
-        settings: &FindElementSettings,
-    ) -> request::Result<Self> {
-        request::send(stream, "WebDriver:FindElement", settings).await
-    }
+#[derive(Debug, WebDriverCommand)]
+pub struct FindElement {
+    pub parameters: FindElementParameters,
 }
 
+// ---
+
 #[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TakeScreenshotOptions {
+#[derive(Debug, Serialize)]
+pub struct TakeScreenshotParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     full: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -131,7 +125,7 @@ pub struct TakeScreenshotOptions {
     element_id: Option<String>,
 }
 
-impl TakeScreenshotOptions {
+impl TakeScreenshotParameters {
     pub const fn new(full: Option<bool>, scroll: Option<bool>, element_id: Option<String>) -> Self {
         Self {
             full,
@@ -154,16 +148,12 @@ impl TakeScreenshotOptions {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TakeScreenshot {
+pub struct TakeScreenshotResponse {
     #[serde(rename = "value")]
     pub base64_png: String,
 }
 
-impl TakeScreenshot {
-    pub async fn send(
-        stream: &mut TcpStream,
-        options: &TakeScreenshotOptions,
-    ) -> request::Result<Self> {
-        request::send(stream, "WebDriver:TakeScreenshot", options).await
-    }
+#[derive(Debug, WebDriverCommand)]
+pub struct TakeScreenshot {
+    pub parameters: TakeScreenshotParameters,
 }
