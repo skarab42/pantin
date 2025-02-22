@@ -5,4 +5,4 @@
 pub mod browser;
 pub mod profile;
 
-pub use browser::{Browser, Error};
+pub use browser::*;

@@ -27,6 +27,8 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
+pub type ScreenshotParameters = webdriver::TakeScreenshotParameters;
+
 #[derive(Debug)]
 pub struct Browser {
     uuid: Uuid,
@@ -110,12 +112,13 @@ impl Browser {
     }
 
     #[instrument(name = "Browser::screenshot", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn screenshot(&mut self) -> Result<Vec<u8>> {
+    pub async fn screenshot(
+        &mut self,
+        parameters: webdriver::TakeScreenshotParameters,
+    ) -> Result<Vec<u8>> {
         let webdriver::TakeScreenshotResponse { base64_png } = self
             .marionette
-            .send(&webdriver::TakeScreenshot::new(
-                webdriver::TakeScreenshotParameters::viewport(),
-            ))
+            .send(&webdriver::TakeScreenshot::new(parameters))
             .await?;
 
         BASE64_STANDARD

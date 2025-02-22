@@ -6,7 +6,7 @@ mod logger;
 mod signal;
 
 use color_eyre::eyre::Result;
-use pantin_browser::Browser;
+use pantin_browser::{Browser, ScreenshotParameters};
 use tracing::info;
 
 #[tokio::main]
@@ -23,7 +23,8 @@ async fn main() -> Result<()> {
 
     browser.navigate("https://www.infomaniak.ch").await?;
 
-    let bytes = browser.screenshot().await?;
+    let parameters = ScreenshotParameters::viewport();
+    let bytes = browser.screenshot(parameters).await?;
     info!("PNG size {}", bytes.len());
 
     info!("Press [CTRL+C] to exit gracefully.");

@@ -9,4 +9,4 @@ pub mod request;
 pub mod response;
 pub mod webdriver;
 
-pub use marionette::{Error, Marionette};
+pub use marionette::*;
