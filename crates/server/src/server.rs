@@ -72,19 +72,29 @@ pub async fn start(settings: cli::PantinSettings) -> Result<()> {
         .layer(service_builder)
         .with_state(state);
 
-    tokio::spawn(retain_loop(settings.clone(), browser_pool));
+    tokio::spawn(retain_loop(settings.clone(), browser_pool.clone()));
 
     let listener = TcpListener::bind((settings.host.clone(), settings.port)).await?;
     info!("Listening at http://{}:{}", settings.host, settings.port);
 
     info!("Press [CTRL+C] to exit gracefully.");
     axum::serve(listener, router)
-        .with_graceful_shutdown(shutdown_signal(|| {
-            debug!("Doing some cleaning...");
-        }))
+        .with_graceful_shutdown(shutdown_signal())
         .await?;
 
+    debug!("Cleaning browser pool...");
+    cleaning_loop(browser_pool).await?;
+
+    info!("Exited gracefully !");
+
     Ok(())
+}
+
+async fn shutdown_signal() {
+    match signal::shutdown().await {
+        Ok(()) => info!("Exiting..."),
+        Err(error) => error!(?error, "Failed to setup graceful shutdown !"),
+    }
 }
 
 async fn retain_loop(settings: cli::PantinSettings, browser_pool: BrowserPool) -> Result<()> {
@@ -105,14 +115,12 @@ async fn retain_loop(settings: cli::PantinSettings, browser_pool: BrowserPool) -
     }
 }
 
-async fn shutdown_signal<F: FnOnce() + Send>(cleanup: F) {
-    match signal::shutdown().await {
-        Ok(()) => {
-            cleanup();
-            info!("Exited gracefully !");
-        },
-        Err(error) => {
-            error!(?error, "Failed to setup graceful shutdown !");
-        },
+async fn cleaning_loop(browser_pool: BrowserPool) -> Result<()> {
+    let retain_result = browser_pool.retain(|_, _| false);
+
+    for browser in retain_result.removed {
+        browser.close().await?;
     }
+
+    Ok(())
 }
