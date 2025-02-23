@@ -10,7 +10,10 @@ pub async fn start(settings: cli::PantinSettings) -> Result<()> {
     let listener = TcpListener::bind((settings.host.as_str(), settings.port)).await?;
     info!("Listening at http://{}:{}", settings.host, settings.port);
 
-    let app = Router::new().route("/ping", get(api::ping));
+    let app = Router::new()
+        .route("/ping", get(api::ping))
+        .route("/screenshot", get(api::screenshot))
+        .fallback(api::not_found);
 
     info!("Press [CTRL+C] to exit gracefully.");
     axum::serve(listener, app)

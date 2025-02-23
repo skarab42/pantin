@@ -14,7 +14,7 @@ name = "pantin_server"
 path = "src/main.rs"
 
 [dependencies]
-axum = "0.8.1"
+axum = { version = "0.8.1", features = ["macros"] }
 clap = { version = "4.5.30", features = ["derive", "env"] }
 color-eyre = "0.6.3"
 serde = { version = "1.0.218", features = ["derive"] }
@@ -25,3 +25,4 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 # workspace dependencies
 pantin_browser = { path = "../browser" }
+serde_json = "1.0.139"
