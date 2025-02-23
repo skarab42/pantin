@@ -30,6 +30,7 @@ async fn shutdown_impl() -> io::Result<()> {
 }
 
 #[cfg(windows)]
+#[allow(clippy::cognitive_complexity)]
 async fn shutdown_impl() -> io::Result<()> {
     use tokio::signal::windows;
 

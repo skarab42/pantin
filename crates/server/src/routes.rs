@@ -1,8 +1,11 @@
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::Deserialize;
 use tracing::info;
 
-use crate::api::{Error, Failure, Query, Success};
+use crate::{
+    api::{Error, Failure, Query, Success},
+    state,
+};
 
 pub async fn ping() -> impl IntoResponse {
     Json(Success::<String>::new("pong".into()))
@@ -47,8 +50,14 @@ pub struct ScreenshotQuery {
     xpath: Option<String>,
 }
 
-pub async fn screenshot(query: Query<ScreenshotQuery>) -> Result<impl IntoResponse, Error> {
+pub async fn screenshot(
+    state: State<state::State>,
+    query: Query<ScreenshotQuery>,
+) -> Result<impl IntoResponse, Error> {
     info!(?query, "Screenshot");
+
+    let browser = state.get_browser().await?;
+    info!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Browser");
 
     Ok(())
 }

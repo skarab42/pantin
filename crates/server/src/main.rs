@@ -3,13 +3,15 @@
 #![allow(clippy::multiple_crate_versions)]
 
 mod api;
+mod browser_pool;
 mod cli;
 mod logger;
 mod routes;
 mod server;
 mod signal;
+mod state;
 
-use color_eyre::eyre::Result;
+use color_eyre::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {

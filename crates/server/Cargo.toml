@@ -28,3 +28,4 @@ uuid = { version = "1.13.1", features = ["v4"] }
 
 # workspace dependencies
 pantin_browser = { path = "../browser" }
+deadpool = "0.12.2"

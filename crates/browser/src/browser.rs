@@ -74,9 +74,16 @@ impl Browser {
         Self::new(Uuid::new_v4()).await
     }
 
-    #[must_use]
+    pub const fn uuid(&self) -> Uuid {
+        self.uuid
+    }
+
     pub fn pid(&self) -> Option<u32> {
         self.process.id()
+    }
+
+    pub fn sid(&self) -> &str {
+        self.marionette.session_id()
     }
 
     pub fn status(&mut self) -> Status {
@@ -141,7 +148,7 @@ impl Browser {
         debug!("Browser instance closed with status: {status:?}");
 
         #[cfg(windows)]
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
         if self.profile.exists() {
             self.profile.remove()?;

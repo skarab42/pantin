@@ -46,6 +46,14 @@ impl Marionette {
         })
     }
 
+    pub const fn protocol(&self) -> u8 {
+        self.handshake.marionette_protocol
+    }
+
+    pub fn session_id(&self) -> &str {
+        self.session.session_id.as_str()
+    }
+
     pub async fn send<C>(&mut self, command: &C) -> Result<C::Response>
     where
         C: webdriver::Command + Send + Sync,
