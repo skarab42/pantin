@@ -2,10 +2,38 @@ use axum::{
     extract::FromRequestParts,
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
 use color_eyre::eyre;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::info;
+
+#[derive(Debug, Serialize)]
+pub struct Success<T> {
+    data: T,
+}
+
+impl<T> Success<T> {
+    pub const fn new(data: T) -> Self {
+        Self { data }
+    }
+}
+
+// ---
+
+#[derive(Debug, Serialize)]
+pub struct Failure {
+    code: String,
+    message: String,
+}
+
+impl Failure {
+    pub const fn new(code: String, message: String) -> Self {
+        Self { code, message }
+    }
+}
+
+// ---
 
 pub struct Error(eyre::Error);
 
@@ -13,7 +41,10 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {}", self.0),
+            Json(Failure::new(
+                "INTERNAL_SERVER_ERROR".into(),
+                format!("{}", self.0),
+            )),
         )
             .into_response()
     }
@@ -34,13 +65,16 @@ pub struct Query<T>(pub T);
 // ---
 
 pub async fn ping() -> impl IntoResponse {
-    "pong"
+    Json(Success::<String>::new("pong".into()))
 }
 
 // ---
 
 pub async fn not_found() -> impl IntoResponse {
-    (StatusCode::NOT_FOUND, "nothing to see here")
+    (
+        StatusCode::NOT_FOUND,
+        Json(Failure::new("NOT_FOUND".into(), "not found".into())),
+    )
 }
 
 // ---
