@@ -5,6 +5,7 @@
 mod api;
 mod cli;
 mod logger;
+mod routes;
 mod server;
 mod signal;
 
