@@ -2,7 +2,7 @@ use clap::{Parser, ValueEnum};
 use serde::Serialize;
 
 #[derive(Debug, Copy, Clone, ValueEnum, Serialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all(serialize = "lowercase"))]
 pub enum LogLevel {
     Info,
     Debug,

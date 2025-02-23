@@ -18,7 +18,7 @@ pub type NewSessionCapabilities = Map<String, Value>;
 pub type NewSessionParameters = Option<NewSessionCapabilities>;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all(deserialize = "camelCase"))]
 pub struct NewSessionResponse {
     pub session_id: String,
     pub capabilities: Map<String, Value>,

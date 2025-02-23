@@ -20,7 +20,7 @@ pub enum Error {
 pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all(deserialize = "camelCase"))]
 pub struct Handshake {
     pub marionette_protocol: u8,
     pub application_type: String,
