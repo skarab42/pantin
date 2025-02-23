@@ -14,15 +14,17 @@ name = "pantin_server"
 path = "src/main.rs"
 
 [dependencies]
-axum = { version = "0.8.1", features = ["macros"] }
+axum = { version = "0.8.1", features = ["macros", "tracing"] }
 clap = { version = "4.5.30", features = ["derive", "env"] }
 color-eyre = "0.6.3"
 serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
 thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread", "signal"] }
+tower-http = { version = "0.6.2", features = ["trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+uuid = { version = "1.13.1", features = ["v4"] }
 
 # workspace dependencies
 pantin_browser = { path = "../browser" }
-serde_json = "1.0.139"

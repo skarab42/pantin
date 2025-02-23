@@ -34,6 +34,7 @@ pub struct Error(eyre::Error);
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
+        tracing::error!("{}", self.0);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(Failure::new(

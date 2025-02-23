@@ -16,7 +16,7 @@ pub async fn not_found() -> impl IntoResponse {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
+#[serde(rename_all(deserialize = "lowercase"))]
 pub enum ScreenshotMode {
     Full,
     Viewport,
