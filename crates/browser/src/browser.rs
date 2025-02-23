@@ -1,8 +1,8 @@
-use std::{fmt::Debug, result};
-
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use pantin_marionette::{webdriver, Marionette};
 use pantin_process::{Process, Status};
+use std::ffi::OsStr;
+use std::{fmt::Debug, result};
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;
@@ -39,11 +39,14 @@ pub struct Browser {
 
 impl Browser {
     #[instrument(name = "Browser::new")]
-    pub async fn new(uuid: Uuid) -> Result<Self> {
+    pub async fn new<P>(uuid: Uuid, program: P) -> Result<Self>
+    where
+        P: AsRef<OsStr> + Debug + Send,
+    {
         debug!("Opening a new Browser instance...");
         let profile = Profile::new().await?;
         let process = Process::new(
-            "firefox",
+            program,
             [
                 "--private",
                 "--headless",
@@ -70,8 +73,11 @@ impl Browser {
         })
     }
 
-    pub async fn open() -> Result<Self> {
-        Self::new(Uuid::new_v4()).await
+    pub async fn open<P>(program: P) -> Result<Self>
+    where
+        P: AsRef<OsStr> + Debug + Send,
+    {
+        Self::new(Uuid::new_v4(), program).await
     }
 
     pub const fn uuid(&self) -> Uuid {

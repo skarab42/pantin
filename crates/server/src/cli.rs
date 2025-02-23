@@ -42,6 +42,10 @@ pub struct PantinSettings {
     #[arg(long, default_value_t = 10, env = "PANTIN_BROWSER_MAX_RECYCLE_COUNT")]
     pub browser_max_recycle_count: u16,
 
+    /// Command or binary path to launch a gecko like browser
+    #[arg(long, default_value = "firefox", env = "PANTIN_BROWSER_PROGRAM")]
+    pub browser_program: String,
+
     /// Log level
     #[arg(value_enum, long, default_value = "info", env = "PANTIN_LOG_LEVEL")]
     pub log_level: LogLevel,

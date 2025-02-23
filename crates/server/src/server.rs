@@ -23,7 +23,7 @@ pub async fn start(settings: cli::PantinSettings) -> Result<()> {
         debug_span!("request", uuid=?Uuid::new_v4(), method=?request.method(), uri=?request.uri(), version=?request.version())
     });
 
-    let browser_pool = BrowserPool::builder(BrowserManager)
+    let browser_pool = BrowserPool::builder(BrowserManager::new(settings.browser_program.as_str()))
         .max_size(usize::from(settings.browser_pool_max_size))
         .build()?;
 
