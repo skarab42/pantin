@@ -2,6 +2,7 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::multiple_crate_versions)]
 
+mod cli;
 mod logger;
 mod signal;
 
@@ -12,7 +13,9 @@ use tracing::info;
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
-    logger::install()?;
+
+    let settings = cli::parse();
+    logger::install(settings.log_level)?;
 
     info!("Starting...");
 
