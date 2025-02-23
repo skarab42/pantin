@@ -19,7 +19,7 @@ impl AsRef<str> for LogLevel {
     }
 }
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 #[command(version, about, long_about = None)]
 pub struct PantinSettings {
     /// Host of the API server
@@ -29,6 +29,10 @@ pub struct PantinSettings {
     /// Port number of the API server
     #[arg(short, long, default_value_t = 4242, env = "PANTIN_PORT")]
     pub port: u16,
+
+    /// Request timeout in seconds
+    #[arg(short, long, default_value_t = 30, env = "PANTIN_REQUEST_TIMEOUT")]
+    pub request_timeout: u16,
 
     /// Number of active browser in the pool
     #[arg(long, default_value_t = 5, env = "PANTIN_BROWSER_POOL_MAX_SIZE")]
