@@ -21,4 +21,4 @@ tokio = { version = "1.43.0", features = ["io-util", "net", "time"] }
 tracing = "0.1.41"
 
 # workspace dependencies
-pantin_macros = { path = "../macros" }
+pantin_derive = { path = "../derive" }

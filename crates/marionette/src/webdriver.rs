@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use pantin_macros::WebDriverCommand;
+use pantin_derive::WebDriverCommand;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 

@@ -381,7 +381,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pantin_macros"
+name = "pantin_derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
@@ -393,7 +393,7 @@ dependencies = [
 name = "pantin_marionette"
 version = "0.1.0"
 dependencies = [
- "pantin_macros",
+ "pantin_derive",
  "serde",
  "serde_json",
  "thiserror",

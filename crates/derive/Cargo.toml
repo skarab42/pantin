@@ -1,5 +1,5 @@
 [package]
-name = "pantin_macros"
+name = "pantin_derive"
 description = "Pantin macros"
 readme = "../../README.md"
 version = "0.1.0"
