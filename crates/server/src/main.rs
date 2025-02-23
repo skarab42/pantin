@@ -2,13 +2,13 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::multiple_crate_versions)]
 
+mod api;
 mod cli;
 mod logger;
+mod server;
 mod signal;
 
 use color_eyre::eyre::Result;
-use pantin_browser::{Browser, ScreenshotParameters};
-use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,25 +17,24 @@ async fn main() -> Result<()> {
     let settings = cli::parse();
     logger::install(settings.log_level)?;
 
-    info!("Starting...");
+    server::start(settings).await?;
 
-    let mut browser = Browser::open().await?;
+    // info!("Starting...");
+    //
+    // let mut browser = Browser::open().await?;
+    //
+    // let size = browser.resize(800, 600).await?;
+    // info!("Resized to {size:?}");
+    //
+    // browser.navigate("https://www.infomaniak.ch").await?;
+    //
+    // let parameters = ScreenshotParameters::viewport();
+    // let bytes = browser.screenshot(parameters).await?;
+    // info!("PNG size {}", bytes.len());
 
-    let size = browser.resize(800, 600).await?;
-    info!("Resized to {size:?}");
+    // signal::shutdown().await?;
 
-    browser.navigate("https://www.infomaniak.ch").await?;
-
-    let parameters = ScreenshotParameters::viewport();
-    let bytes = browser.screenshot(parameters).await?;
-    info!("PNG size {}", bytes.len());
-
-    info!("Press [CTRL+C] to exit gracefully.");
-    signal::shutdown().await?;
-
-    browser.close().await?;
-
-    info!("Exited gracefully !");
+    // browser.close().await?;
 
     Ok(())
 }
