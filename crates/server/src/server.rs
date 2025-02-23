@@ -1,10 +1,20 @@
 use std::time::Duration;
 
-use axum::{body::Body, http::Request, routing::get, Router};
+use axum::{
+    body::Body,
+    http::{HeaderName, HeaderValue, Request},
+    routing::get,
+    Router,
+};
 use color_eyre::eyre::Result;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
-use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
+use tower_http::{
+    request_id,
+    request_id::{PropagateRequestIdLayer, SetRequestIdLayer},
+    timeout::TimeoutLayer,
+    trace::TraceLayer,
+};
 use tracing::{debug, debug_span, error, info};
 use uuid::Uuid;
 
@@ -14,14 +24,38 @@ use crate::{
     state::State,
 };
 
+#[derive(Clone)]
+struct MakeRequestId;
+
+impl request_id::MakeRequestId for MakeRequestId {
+    fn make_request_id<B>(&mut self, _request: &Request<B>) -> Option<request_id::RequestId> {
+        let request_id = Uuid::new_v4().to_string();
+
+        #[allow(clippy::expect_used)]
+        Some(request_id::RequestId::new(
+            HeaderValue::from_str(request_id.as_str()).expect("Request id"),
+        ))
+    }
+}
+
 pub async fn start(settings: cli::PantinSettings) -> Result<()> {
     debug!(?settings, "Starting...");
 
-    let trace_layer = TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
-        debug_span!("request", uuid=?Uuid::new_v4(), method=?request.method(), uri=?request.uri(), version=?request.version())
+    let x_request_id = HeaderName::from_static("x-request-id");
+    let request_id_layer = SetRequestIdLayer::new(x_request_id.clone(), MakeRequestId);
+    let propagate_request_id_layer = PropagateRequestIdLayer::new(x_request_id.clone());
+
+    let trace_layer = TraceLayer::new_for_http().make_span_with(move |request: &Request<Body>| {
+        let default_value = HeaderValue::from_static("none");
+        let uuid = request.headers().get(&x_request_id).unwrap_or(&default_value);
+        debug_span!("request", ?uuid, method=?request.method(), uri=?request.uri(), version=?request.version())
     });
+
     let timeout_layer = TimeoutLayer::new(Duration::from_secs(u64::from(settings.request_timeout)));
+
     let service_builder = ServiceBuilder::new()
+        .layer(request_id_layer)
+        .layer(propagate_request_id_layer)
         .layer(trace_layer)
         .layer(timeout_layer);
 
