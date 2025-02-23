@@ -83,7 +83,7 @@ async fn crate_user_js_file(directory: &TempDir) -> Result<SocketAddr> {
 }
 
 fn create_directory() -> Result<TempDir> {
-    let directory = TempDir::with_prefix("pentin-firefox-profile")
+    let directory = TempDir::with_prefix("pantin-moz-profile")
         .map_err(Error::CreateDirectory)?
         .panic_on_cleanup_error();
 

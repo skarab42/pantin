@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::{body::Body, http::Request, routing::get, Router};
 use color_eyre::eyre::Result;
 use tokio::net::TcpListener;
@@ -13,6 +15,7 @@ use crate::{
 
 pub async fn start(settings: cli::PantinSettings) -> Result<()> {
     debug!(?settings, "Starting...");
+
     let listener = TcpListener::bind((settings.host.as_str(), settings.port)).await?;
     info!("Listening at http://{}:{}", settings.host, settings.port);
 
@@ -21,16 +24,18 @@ pub async fn start(settings: cli::PantinSettings) -> Result<()> {
     });
 
     let browser_pool = BrowserPool::builder(BrowserManager)
-        // .max_size(usize::from(settings.pool_size))
+        .max_size(usize::from(settings.browser_pool_max_size))
         .build()?;
 
-    let state = State::new(browser_pool);
+    let state = State::new(browser_pool.clone());
     let router = Router::new()
         .route("/ping", get(routes::ping))
         .route("/screenshot", get(routes::screenshot))
         .fallback(routes::not_found)
         .layer(trace_layer)
         .with_state(state);
+
+    tokio::spawn(retain_loop(settings, browser_pool));
 
     info!("Press [CTRL+C] to exit gracefully.");
     axum::serve(listener, router)
@@ -40,6 +45,24 @@ pub async fn start(settings: cli::PantinSettings) -> Result<()> {
         .await?;
 
     Ok(())
+}
+
+async fn retain_loop(settings: cli::PantinSettings, browser_pool: BrowserPool) -> Result<()> {
+    let browser_max_age = Duration::from_secs(u64::from(settings.browser_max_age));
+    let browser_max_recycle_count = usize::from(settings.browser_max_recycle_count);
+
+    loop {
+        tokio::time::sleep(browser_max_age).await;
+
+        let retain_result = browser_pool.retain(|_, metrics| {
+            metrics.recycle_count < browser_max_recycle_count
+                && metrics.last_used() < browser_max_age
+        });
+
+        for browser in retain_result.removed {
+            browser.close().await?;
+        }
+    }
 }
 
 async fn shutdown_signal<F: FnOnce() + Send>(cleanup: F) {

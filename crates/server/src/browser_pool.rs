@@ -11,7 +11,7 @@ impl managed::Manager for BrowserManager {
 
     async fn create(&self) -> Result<Self::Type, Self::Error> {
         let browser = Browser::open().await?;
-        debug!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Add new Browser instance in pool");
+        debug!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Create Browser instance in pool");
 
         Ok(browser)
     }
@@ -24,6 +24,10 @@ impl managed::Manager for BrowserManager {
         debug!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Recycle Browser instance from pool");
 
         Ok(())
+    }
+
+    fn detach(&self, browser: &mut Self::Type) {
+        debug!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Detach Browser instance from pool");
     }
 }
 

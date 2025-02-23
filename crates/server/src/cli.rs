@@ -23,12 +23,24 @@ impl AsRef<str> for LogLevel {
 #[command(version, about, long_about = None)]
 pub struct PantinSettings {
     /// Host of the API server
-    #[arg(long, default_value = "localhost", env = "PANTIN_SERVER_HOST")]
+    #[arg(long, default_value = "localhost", env = "PANTIN_HOST")]
     pub host: String,
 
     /// Port number of the API server
-    #[arg(short, long, default_value_t = 4242, env = "PANTIN_SERVER_PORT")]
+    #[arg(short, long, default_value_t = 4242, env = "PANTIN_PORT")]
     pub port: u16,
+
+    /// Number of active browser in the pool
+    #[arg(long, default_value_t = 5, env = "PANTIN_BROWSER_POOL_MAX_SIZE")]
+    pub browser_pool_max_size: u8,
+
+    /// Maximum age in seconds of an unused browser session
+    #[arg(long, default_value_t = 60, env = "PANTIN_BROWSER_MAX_AGE")]
+    pub browser_max_age: u16,
+
+    /// Maximum number of times to recycle a browser session
+    #[arg(long, default_value_t = 10, env = "PANTIN_BROWSER_MAX_RECYCLE_COUNT")]
+    pub browser_max_recycle_count: u16,
 
     /// Log level
     #[arg(value_enum, long, default_value = "info", env = "PANTIN_LOG_LEVEL")]
