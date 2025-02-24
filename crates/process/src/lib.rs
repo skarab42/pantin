@@ -10,7 +10,7 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
 };
-use tracing::{debug, trace, Instrument};
+use tracing::{Instrument, debug, trace};
 
 #[derive(Error, Debug)]
 pub enum Error {

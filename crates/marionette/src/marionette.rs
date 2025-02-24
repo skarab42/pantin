@@ -3,7 +3,7 @@ use std::{fmt::Debug, io, net::SocketAddr, result, time::Duration};
 use thiserror::Error;
 use tokio::{
     net::TcpStream,
-    time::{sleep, Instant},
+    time::{Instant, sleep},
 };
 use tracing::{debug, error};
 

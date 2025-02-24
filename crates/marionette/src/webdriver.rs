@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use pantin_derive::WebDriverCommand;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Map, Value};
 
 pub trait Command {

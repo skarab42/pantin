@@ -16,7 +16,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[cfg(unix)]
 async fn shutdown_impl() -> io::Result<()> {
-    use tokio::signal::unix::{signal, SignalKind};
+    use tokio::signal::unix::{SignalKind, signal};
 
     let mut terminate = signal(SignalKind::terminate())?;
     let mut interrupt = signal(SignalKind::interrupt())?;

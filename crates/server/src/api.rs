@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::FromRequestParts,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use color_eyre::eyre;
 use serde::Serialize;

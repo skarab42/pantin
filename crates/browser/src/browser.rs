@@ -1,8 +1,8 @@
-use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
-use pantin_marionette::{webdriver, Marionette};
+use std::{ffi::OsStr, fmt::Debug, result};
+
+use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
+use pantin_marionette::{Marionette, webdriver};
 use pantin_process::{Process, Status};
-use std::ffi::OsStr;
-use std::{fmt::Debug, result};
 use thiserror::Error;
 use tracing::{debug, instrument};
 use uuid::Uuid;

@@ -1,5 +1,5 @@
 use deadpool::managed;
-use pantin_browser::{browser, Browser};
+use pantin_browser::{Browser, browser};
 use tracing::debug;
 
 #[derive(Debug)]

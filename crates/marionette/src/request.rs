@@ -1,6 +1,6 @@
 use std::{fmt::Debug, io, result};
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use tracing::debug;
 

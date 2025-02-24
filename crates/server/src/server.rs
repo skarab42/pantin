@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use axum::{
+    Router,
     body::Body,
     http::{HeaderName, HeaderValue, Request},
     routing::get,
-    Router,
 };
 use color_eyre::eyre::Result;
 use tokio::net::TcpListener;

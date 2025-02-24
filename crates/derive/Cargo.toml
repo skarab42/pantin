@@ -3,15 +3,16 @@ name = "pantin_derive"
 description = "Pantin macros"
 readme = "../../README.md"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 repository = "https://github.com/skarab42/pantin"
 keywords = ["firefox", "marionette", "screenshot", "microservice"]
 categories = ["multimedia::images", "web-programming::http-server"]
 
 [lib]
+name = "pantin_derive"
+path = "src/lib.rs"
 proc-macro = true
-crate-type = ["proc-macro"]
 
 [dependencies]
 proc-macro2 = "1.0.93"

@@ -1,8 +1,8 @@
 use std::result;
 
 use thiserror::Error;
-use tracing::subscriber::{set_global_default, SetGlobalDefaultError};
-use tracing_subscriber::{fmt::layer, layer::SubscriberExt, EnvFilter, Registry};
+use tracing::subscriber::{SetGlobalDefaultError, set_global_default};
+use tracing_subscriber::{EnvFilter, Registry, fmt::layer, layer::SubscriberExt};
 
 #[derive(Error, Debug)]
 pub enum Error {
