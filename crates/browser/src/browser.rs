@@ -27,6 +27,7 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
+pub type ScreenshotFindElementUsing = webdriver::FindElementUsing;
 pub type ScreenshotParameters = webdriver::TakeScreenshotParameters;
 
 #[derive(Debug)]
@@ -122,6 +123,25 @@ impl Browser {
             .await?;
 
         Ok(())
+    }
+
+    #[instrument(name = "Browser::find_element", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn find_element<V: Into<String> + Send + Debug>(
+        &mut self,
+        using: webdriver::FindElementUsing,
+        value: V,
+    ) -> Result<webdriver::Element> {
+        let element = self
+            .marionette
+            .send(&webdriver::FindElement::new(
+                webdriver::FindElementParameters {
+                    using,
+                    value: value.into(),
+                },
+            ))
+            .await?;
+
+        Ok(element.value)
     }
 
     #[instrument(name = "Browser::screenshot", skip(self), fields(uuid = ?self.uuid))]

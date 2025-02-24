@@ -77,17 +77,10 @@ pub struct Navigate {
 
 #[derive(Debug, Serialize)]
 pub enum FindElementUsing {
+    #[serde(rename = "css selector")]
     CssSelector,
+    #[serde(rename = "xpath")]
     XPath,
-}
-
-impl From<FindElementUsing> for String {
-    fn from(value: FindElementUsing) -> Self {
-        match value {
-            FindElementUsing::CssSelector => "css selector".to_string(),
-            FindElementUsing::XPath => "xpath".to_string(),
-        }
-    }
 }
 
 #[derive(Debug, Serialize)]
@@ -119,31 +112,25 @@ pub struct FindElement {
 pub struct TakeScreenshotParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     full: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    scroll: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "id")]
     element_id: Option<String>,
 }
 
 impl TakeScreenshotParameters {
-    pub const fn new(full: Option<bool>, scroll: Option<bool>, element_id: Option<String>) -> Self {
-        Self {
-            full,
-            scroll,
-            element_id,
-        }
+    pub const fn new(full: Option<bool>, element_id: Option<String>) -> Self {
+        Self { full, element_id }
     }
 
     pub const fn full() -> Self {
-        Self::new(Some(true), Some(false), None)
+        Self::new(Some(true), None)
     }
 
     pub const fn viewport() -> Self {
-        Self::new(Some(false), Some(false), None)
+        Self::new(Some(false), None)
     }
 
-    pub const fn element(element_id: String, scroll: Option<bool>) -> Self {
-        Self::new(Some(false), scroll, Some(element_id))
+    pub const fn element(id: String) -> Self {
+        Self::new(Some(false), Some(id))
     }
 }
 
