@@ -74,8 +74,11 @@ pub async fn start(settings: cli::PantinSettings) -> Result<()> {
 
     tokio::spawn(retain_loop(settings.clone(), browser_pool.clone()));
 
-    let listener = TcpListener::bind((settings.host.clone(), settings.port)).await?;
-    info!("Listening at http://{}:{}", settings.host, settings.port);
+    let listener = TcpListener::bind((settings.server_host.clone(), settings.server_port)).await?;
+    info!(
+        "Listening at http://{}:{}",
+        settings.server_host, settings.server_port
+    );
 
     info!("Press [CTRL+C] to exit gracefully.");
     axum::serve(listener, router)

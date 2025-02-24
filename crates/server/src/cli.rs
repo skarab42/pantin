@@ -23,12 +23,12 @@ impl AsRef<str> for LogLevel {
 #[command(version, about, long_about = None)]
 pub struct PantinSettings {
     /// Host of the API server
-    #[arg(long, default_value = "localhost", env = "PANTIN_HOST")]
-    pub host: String,
+    #[arg(long, default_value = "localhost", env = "PANTIN_SERVER_HOST")]
+    pub server_host: String,
 
     /// Port number of the API server
-    #[arg(short, long, default_value_t = 4242, env = "PANTIN_PORT")]
-    pub port: u16,
+    #[arg(short, long, default_value_t = 4242, env = "PANTIN_SERVER_PORT")]
+    pub server_port: u16,
 
     /// Request timeout in seconds
     #[arg(short, long, default_value_t = 30, env = "PANTIN_REQUEST_TIMEOUT")]
