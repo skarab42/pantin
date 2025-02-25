@@ -90,10 +90,10 @@ pub async fn screenshot(
 async fn take_screenshot(browser: &mut Browser, query: ScreenshotQuery) -> Result<Vec<u8>, Error> {
     browser.navigate(query.url).await?;
 
-    // let scrollbar = query.scrollbar.unwrap_or(false);
-    // if !settings.scrollbar {
-    //     browser.hide_body_scrollbar()?;
-    // }
+    let scrollbar = query.scrollbar.unwrap_or(false);
+    if !scrollbar {
+        browser.hide_body_scrollbar().await?;
+    }
 
     let width = query.width.unwrap_or(800);
     let height = query.height.unwrap_or(600);

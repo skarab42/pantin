@@ -32,6 +32,24 @@ pub struct NewSession {
 // ---
 
 #[derive(Debug, Serialize)]
+pub struct ExecuteScriptParameters {
+    pub script: String,
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExecuteScriptResponse {
+    pub value: (),
+}
+
+#[derive(Debug, WebDriverCommand)]
+pub struct ExecuteScript {
+    parameters: ExecuteScriptParameters,
+}
+
+// ---
+
+#[derive(Debug, Serialize)]
 pub struct SetWindowRectParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<u16>,

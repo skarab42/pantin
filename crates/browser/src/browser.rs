@@ -125,6 +125,42 @@ impl Browser {
         Ok(())
     }
 
+    #[instrument(name = "Browser::execute_script", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn execute_script<S: Into<String> + Send + Debug>(
+        &mut self,
+        script: S,
+        args: Option<Vec<String>>,
+    ) -> Result<()> {
+        self.marionette
+            .send(&webdriver::ExecuteScript::new(
+                webdriver::ExecuteScriptParameters {
+                    script: script.into(),
+                    args: args.unwrap_or_default(),
+                },
+            ))
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(name = "Browser::inject_header_styles", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn inject_header_styles<S: Into<String> + Debug>(&mut self, styles: S) -> Result<()> {
+        let script = "
+            let style = document.createElement('style');
+            style.innerHTML = arguments[0];
+            document.head.appendChild(style);
+        ";
+        let args = Vec::from([styles.into()]);
+
+        self.execute_script(script, Some(args)).await
+    }
+
+    #[instrument(name = "Browser::hide_body_scrollbar", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn hide_body_scrollbar(&mut self) -> Result<()> {
+        self.inject_header_styles("html, body { scrollbar-width: none !important; }")
+            .await
+    }
+
     #[instrument(name = "Browser::find_element", skip(self), fields(uuid = ?self.uuid))]
     pub async fn find_element<V: Into<String> + Send + Debug>(
         &mut self,
