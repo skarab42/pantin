@@ -2,14 +2,13 @@ use std::time::Duration;
 
 use axum::{
     Json,
-    body::Body,
     extract::State,
     http::{StatusCode, header},
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
 use color_eyre::eyre::eyre;
 use pantin_browser::{Browser, ScreenshotFindElementUsing, ScreenshotParameters};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::{
@@ -17,15 +16,16 @@ use crate::{
     state,
 };
 
-pub async fn ping() -> impl IntoResponse {
-    Json(Success::<String>::new("pong".into()))
+pub async fn ping() -> Response {
+    Json(Success::<String>::new("pong".into())).into_response()
 }
 
-pub async fn not_found() -> impl IntoResponse {
+pub async fn not_found() -> Response {
     (
         StatusCode::NOT_FOUND,
         Json(Failure::new("NOT_FOUND".into(), "not found".into())),
     )
+        .into_response()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -35,6 +35,16 @@ pub enum ScreenshotMode {
     Viewport,
     Selector,
     XPath,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all(deserialize = "kebab-case"))]
+pub enum ScreenshotResponseType {
+    Attachment,
+    ImagePngBase64,
+    ImagePngBytes,
+    JsonPngBase64,
+    JsonPngBytes,
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,8 +60,8 @@ pub struct ScreenshotQuery {
     height: Option<u16>,
     /// Should show the scrollbar on `html` and `body` elements (default: false).
     scrollbar: Option<bool>,
-    /// Should be displayed as an attachment, that is downloaded and saved locally (default: false).
-    attachment: Option<bool>,
+    /// One of `'attachment'`, `'image-png-base64'`, `'image-png-bytes'`, `'json-png-base64'` or `'json-png-bytes'` (default: 'image-png-bytes').
+    response_type: Option<ScreenshotResponseType>,
     /// One of `'full'`, `'viewport'`, `'selector'` or `'xpath'` (default: 'viewport').
     mode: Option<ScreenshotMode>,
     /// CSS selector, only applied and required if `mode = 'selector'` (default: None).
@@ -63,31 +73,11 @@ pub struct ScreenshotQuery {
 pub async fn screenshot(
     state: State<state::State>,
     Query(query): Query<ScreenshotQuery>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<Response, Error> {
     info!(?query, "Screenshot");
 
-    let attachment = query.attachment.unwrap_or(false);
     let mut browser = state.get_browser().await?;
-    let screenshot = take_screenshot(&mut browser, query).await?;
-    let content_type = (header::CONTENT_TYPE, "image/png");
-    let body = Body::from(screenshot);
 
-    if attachment {
-        let headers = [
-            content_type,
-            (
-                header::CONTENT_DISPOSITION,
-                "attachment; filename=\"screenshot.png\"",
-            ),
-        ];
-
-        Ok((headers, body).into_response())
-    } else {
-        Ok(([content_type], body).into_response())
-    }
-}
-
-async fn take_screenshot(browser: &mut Browser, query: ScreenshotQuery) -> Result<Vec<u8>, Error> {
     browser.navigate(query.url).await?;
 
     let scrollbar = query.scrollbar.unwrap_or(false);
@@ -105,7 +95,7 @@ async fn take_screenshot(browser: &mut Browser, query: ScreenshotQuery) -> Resul
     }
 
     let mode = query.mode.unwrap_or(ScreenshotMode::Viewport);
-    let screenshot = match mode {
+    let parameters = match mode {
         ScreenshotMode::Full => ScreenshotParameters::full(),
         ScreenshotMode::Viewport => ScreenshotParameters::viewport(),
         ScreenshotMode::Selector => {
@@ -128,8 +118,97 @@ async fn take_screenshot(browser: &mut Browser, query: ScreenshotQuery) -> Resul
         },
     };
 
-    let png_bytes = browser.screenshot(screenshot).await?;
-    // TODO: handle base_64 string too
+    let response_type = query
+        .response_type
+        .unwrap_or(ScreenshotResponseType::ImagePngBytes);
 
-    Ok(png_bytes)
+    let response = match response_type {
+        ScreenshotResponseType::ImagePngBytes => {
+            screenshot_image_bytes(&mut browser, parameters).await?
+        },
+        ScreenshotResponseType::Attachment => {
+            screenshot_attachment(&mut browser, parameters).await?
+        },
+        ScreenshotResponseType::ImagePngBase64 => {
+            screenshot_image_base64(&mut browser, parameters).await?
+        },
+        ScreenshotResponseType::JsonPngBase64 => {
+            screenshot_json_base64(&mut browser, parameters).await?
+        },
+        ScreenshotResponseType::JsonPngBytes => {
+            screenshot_json_bytes(&mut browser, parameters).await?
+        },
+    };
+
+    Ok(response)
+}
+
+async fn screenshot_image_bytes(
+    browser: &mut Browser,
+    parameters: ScreenshotParameters,
+) -> Result<Response, Error> {
+    let bytes = browser.screenshot_bytes(parameters).await?;
+    let headers = [(header::CONTENT_TYPE, "image/png")];
+
+    Ok((StatusCode::OK, headers, bytes).into_response())
+}
+
+async fn screenshot_attachment(
+    browser: &mut Browser,
+    parameters: ScreenshotParameters,
+) -> Result<Response, Error> {
+    let bytes = browser.screenshot_bytes(parameters).await?;
+    let headers = [
+        (header::CONTENT_TYPE, "image/png"),
+        (
+            header::CONTENT_DISPOSITION,
+            // TODO: make `filename` configurable ?!
+            "attachment; filename=\"screenshot.png\"",
+        ),
+    ];
+
+    Ok((StatusCode::OK, headers, bytes).into_response())
+}
+
+async fn screenshot_image_base64(
+    browser: &mut Browser,
+    parameters: ScreenshotParameters,
+) -> Result<Response, Error> {
+    let base64 = browser.screenshot_base64(parameters).await?;
+    let headers = [(header::CONTENT_TYPE, "text/plain")];
+
+    Ok((
+        StatusCode::OK,
+        headers,
+        format!("data:image/png;base64,{base64}"),
+    )
+        .into_response())
+}
+
+#[derive(Debug, Serialize)]
+struct JsonPngBase64 {
+    base64: String,
+}
+
+async fn screenshot_json_base64(
+    browser: &mut Browser,
+    parameters: ScreenshotParameters,
+) -> Result<Response, Error> {
+    let base64 = browser.screenshot_base64(parameters).await?;
+
+    Ok((StatusCode::OK, Json(JsonPngBase64 { base64 })).into_response())
+}
+
+#[derive(Debug, Serialize)]
+struct JsonPngBytes {
+    bytes: Vec<u8>,
+}
+
+async fn screenshot_json_bytes(
+    browser: &mut Browser,
+    parameters: ScreenshotParameters,
+) -> Result<Response, Error> {
+    let bytes = browser.screenshot_bytes(parameters).await?;
+
+    Ok((StatusCode::OK, Json(JsonPngBytes { bytes })).into_response())
 }

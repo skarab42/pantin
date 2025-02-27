@@ -164,7 +164,7 @@ impl Browser {
     #[instrument(name = "Browser::find_element", skip(self), fields(uuid = ?self.uuid))]
     pub async fn find_element<V: Into<String> + Send + Debug>(
         &mut self,
-        using: webdriver::FindElementUsing,
+        using: ScreenshotFindElementUsing,
         value: V,
     ) -> Result<webdriver::Element> {
         let element = self
@@ -180,18 +180,20 @@ impl Browser {
         Ok(element.value)
     }
 
-    #[instrument(name = "Browser::screenshot", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn screenshot(
-        &mut self,
-        parameters: webdriver::TakeScreenshotParameters,
-    ) -> Result<Vec<u8>> {
+    #[instrument(name = "Browser::screenshot_base64", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn screenshot_base64(&mut self, parameters: ScreenshotParameters) -> Result<String> {
         let webdriver::TakeScreenshotResponse { base64_png } = self
             .marionette
             .send(&webdriver::TakeScreenshot::new(parameters))
             .await?;
 
+        Ok(base64_png)
+    }
+
+    #[instrument(name = "Browser::screenshot_bytes", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn screenshot_bytes(&mut self, parameters: ScreenshotParameters) -> Result<Vec<u8>> {
         BASE64_STANDARD
-            .decode(base64_png)
+            .decode(self.screenshot_base64(parameters).await?)
             .map_err(Error::DecodeScreenshot)
     }
 
