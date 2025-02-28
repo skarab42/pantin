@@ -22,22 +22,5 @@ async fn main() -> Result<()> {
 
     server::start(settings).await?;
 
-    // info!("Starting...");
-    //
-    // let mut browser = Browser::open().await?;
-    //
-    // let size = browser.resize(800, 600).await?;
-    // info!("Resized to {size:?}");
-    //
-    // browser.navigate("https://www.infomaniak.ch").await?;
-    //
-    // let parameters = ScreenshotParameters::viewport();
-    // let bytes = browser.screenshot(parameters).await?;
-    // info!("PNG size {}", bytes.len());
-
-    // signal::shutdown().await?;
-
-    // browser.close().await?;
-
     Ok(())
 }
