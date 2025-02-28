@@ -18,8 +18,6 @@ pub enum Error {
     Process(#[from] pantin_process::Error),
     #[error(transparent)]
     Marionette(#[from] pantin_marionette::Error),
-    #[error(transparent)]
-    MarionetteRequest(#[from] pantin_marionette::request::Error),
     #[error("get child status failed: {0}")]
     ChildStatus(String),
     #[error("decode screenshot failed: {0}")]

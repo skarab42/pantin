@@ -6,7 +6,7 @@ use axum::{
     http::{HeaderName, HeaderValue, Request},
     routing::get,
 };
-use color_eyre::eyre::Result;
+use color_eyre::Result;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{

@@ -6,13 +6,13 @@ use axum::{
     http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
-use color_eyre::eyre::eyre;
 use pantin_browser::{Browser, ScreenshotFindElementUsing, ScreenshotParameters};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::{
-    api::{Error, Failure, Query, Success},
+    api,
+    api::{Failure, Query, Success},
     state,
 };
 
@@ -21,11 +21,7 @@ pub async fn ping() -> Response {
 }
 
 pub async fn not_found() -> Response {
-    (
-        StatusCode::NOT_FOUND,
-        Json(Failure::new("NOT_FOUND".into(), "not found".into())),
-    )
-        .into_response()
+    (StatusCode::NOT_FOUND, Json(Failure::new("not found"))).into_response()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -73,7 +69,7 @@ pub struct ScreenshotQuery {
 pub async fn screenshot(
     state: State<state::State>,
     Query(query): Query<ScreenshotQuery>,
-) -> Result<Response, Error> {
+) -> api::Result {
     info!(?query, "Screenshot");
 
     let mut browser = state.get_browser().await?;
@@ -101,7 +97,7 @@ pub async fn screenshot(
         ScreenshotMode::Selector => {
             let selector = query
                 .selector
-                .ok_or_else(|| eyre!("missing field `selector`"))?;
+                .ok_or_else(|| api::Error::MissingField("selector".into()))?;
             let element = browser
                 .find_element(ScreenshotFindElementUsing::CssSelector, selector)
                 .await?;
@@ -109,7 +105,9 @@ pub async fn screenshot(
             ScreenshotParameters::element(element.id)
         },
         ScreenshotMode::XPath => {
-            let xpath = query.xpath.ok_or_else(|| eyre!("missing field `xpath`"))?;
+            let xpath = query
+                .xpath
+                .ok_or_else(|| api::Error::MissingField("xpath".into()))?;
             let element = browser
                 .find_element(ScreenshotFindElementUsing::XPath, xpath)
                 .await?;
@@ -146,7 +144,7 @@ pub async fn screenshot(
 async fn screenshot_image_bytes(
     browser: &mut Browser,
     parameters: ScreenshotParameters,
-) -> Result<Response, Error> {
+) -> api::Result {
     let bytes = browser.screenshot_bytes(parameters).await?;
     let headers = [(header::CONTENT_TYPE, "image/png")];
 
@@ -156,7 +154,7 @@ async fn screenshot_image_bytes(
 async fn screenshot_attachment(
     browser: &mut Browser,
     parameters: ScreenshotParameters,
-) -> Result<Response, Error> {
+) -> api::Result {
     let bytes = browser.screenshot_bytes(parameters).await?;
     let headers = [
         (header::CONTENT_TYPE, "image/png"),
@@ -173,7 +171,7 @@ async fn screenshot_attachment(
 async fn screenshot_image_base64(
     browser: &mut Browser,
     parameters: ScreenshotParameters,
-) -> Result<Response, Error> {
+) -> api::Result {
     let base64 = browser.screenshot_base64(parameters).await?;
     let headers = [(header::CONTENT_TYPE, "text/plain")];
 
@@ -193,7 +191,7 @@ struct JsonPngBase64 {
 async fn screenshot_json_base64(
     browser: &mut Browser,
     parameters: ScreenshotParameters,
-) -> Result<Response, Error> {
+) -> api::Result {
     let base64 = browser.screenshot_base64(parameters).await?;
 
     Ok((StatusCode::OK, Json(JsonPngBase64 { base64 })).into_response())
@@ -207,7 +205,7 @@ struct JsonPngBytes {
 async fn screenshot_json_bytes(
     browser: &mut Browser,
     parameters: ScreenshotParameters,
-) -> Result<Response, Error> {
+) -> api::Result {
     let bytes = browser.screenshot_bytes(parameters).await?;
 
     Ok((StatusCode::OK, Json(JsonPngBytes { bytes })).into_response())

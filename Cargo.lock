@@ -892,6 +892,7 @@ dependencies = [
  "color-eyre",
  "deadpool",
  "pantin_browser",
+ "pantin_marionette",
  "serde",
  "serde_json",
  "thiserror",

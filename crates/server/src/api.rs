@@ -1,12 +1,15 @@
+use std::result;
+
 use axum::{
     Json,
-    extract::FromRequestParts,
+    extract::{FromRequestParts, rejection::QueryRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use color_eyre::eyre;
 use serde::Serialize;
 use tracing::error;
+
+use crate::state;
 
 #[derive(Debug, Serialize)]
 pub struct Success<T> {
@@ -21,37 +24,60 @@ impl<T> Success<T> {
 
 #[derive(Debug, Serialize)]
 pub struct Failure {
-    code: String,
-    message: String,
+    cause: String,
 }
 
 impl Failure {
-    pub const fn new(code: String, message: String) -> Self {
-        Self { code, message }
+    pub fn new<C: Into<String>>(cause: C) -> Self {
+        Self {
+            cause: cause.into(),
+        }
     }
 }
 
-pub struct Error(eyre::Error);
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    State(#[from] state::Error),
+    #[error(transparent)]
+    Browser(#[from] pantin_browser::Error),
+    #[error(transparent)]
+    QueryRejection(#[from] QueryRejection),
+    #[error("missing field: {0}")]
+    MissingField(String),
+}
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        error!("{}", self.0);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(Failure::new(
-                "INTERNAL_SERVER_ERROR".into(),
-                format!("{}", self.0),
-            )),
-        )
-            .into_response()
+        error!("{:?}", self);
+
+        let (status, message) = match self {
+            // BAD_REQUEST
+            Self::QueryRejection(rejection) => (StatusCode::BAD_REQUEST, rejection.body_text()),
+            Self::MissingField(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            Self::Browser(pantin_browser::Error::ParseUrl(error)) => {
+                (StatusCode::BAD_REQUEST, error.to_string())
+            },
+            // UNPROCESSABLE_ENTITY
+            Self::Browser(pantin_browser::Error::Marionette(
+                pantin_marionette::Error::Request(pantin_marionette::request::Error::Response(
+                    pantin_marionette::response::Error::CommandFailure(_id, failure),
+                )),
+            )) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                format!("{}: {}", failure.error, failure.message),
+            ),
+            // INTERNAL_SERVER_ERROR
+            Self::Browser(_) | Self::State(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            },
+        };
+
+        (status, Json(Failure::new(message))).into_response()
     }
 }
 
-impl<E: Into<eyre::Error>> From<E> for Error {
-    fn from(err: E) -> Self {
-        Self(err.into())
-    }
-}
+pub type Result<T = Response, E = Error> = result::Result<T, E>;
 
 #[derive(Debug, FromRequestParts)]
 #[from_request(via(axum::extract::Query), rejection(Error))]

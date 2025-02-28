@@ -1,6 +1,13 @@
-use deadpool::managed::Object;
+use deadpool::managed::{Object, PoolError};
+use pantin_browser::browser;
 
 use crate::browser_pool::{BrowserManager, BrowserPool};
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    PoolError(#[from] PoolError<browser::Error>),
+}
 
 #[derive(Clone)]
 pub struct State {
@@ -12,7 +19,7 @@ impl State {
         Self { browser_pool }
     }
 
-    pub async fn get_browser(&self) -> color_eyre::Result<Object<BrowserManager>> {
+    pub async fn get_browser(&self) -> Result<Object<BrowserManager>, Error> {
         Ok(Box::pin(self.browser_pool.get()).await?)
     }
 }
