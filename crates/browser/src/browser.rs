@@ -5,6 +5,7 @@ use pantin_marionette::{Marionette, webdriver};
 use pantin_process::{Process, Status};
 use thiserror::Error;
 use tracing::{debug, instrument};
+use url::{ParseError, Url};
 use uuid::Uuid;
 
 use crate::{profile, profile::Profile};
@@ -23,6 +24,10 @@ pub enum Error {
     ChildStatus(String),
     #[error("decode screenshot failed: {0}")]
     DecodeScreenshot(#[source] DecodeError),
+    #[error("parse url failed: {0}")]
+    ParseUrl(#[source] ParseError),
+    #[error("unsupported url protocol: only 'http://' and 'https://' are allowed")]
+    UnsupportedUrlProtocol,
 }
 
 pub type Result<T, E = Error> = result::Result<T, E>;
@@ -118,7 +123,7 @@ impl Browser {
     pub async fn navigate<U: Into<String> + Send + Debug>(&mut self, url: U) -> Result<()> {
         self.marionette
             .send(&webdriver::Navigate::new(webdriver::NavigateParameters {
-                url: url.into(),
+                url: parse_url(url.into().as_str())?,
             }))
             .await?;
 
@@ -219,5 +224,19 @@ impl Browser {
         }
 
         status
+    }
+}
+
+fn parse_url(url: &str) -> Result<String> {
+    match Url::parse(url) {
+        Ok(parsed_url) => {
+            if parsed_url.scheme() == "http" || parsed_url.scheme() == "https" {
+                Ok(parsed_url.into())
+            } else {
+                Err(Error::UnsupportedUrlProtocol)
+            }
+        },
+        Err(ParseError::RelativeUrlWithoutBase) => parse_url(format!("https://{url}").as_str()),
+        Err(error) => Err(Error::ParseUrl(error)),
     }
 }
