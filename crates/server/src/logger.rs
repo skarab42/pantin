@@ -13,7 +13,7 @@ pub enum Error {
 pub type Result<T, E = Error> = result::Result<T, E>;
 
 pub fn install<L: AsRef<str>>(log_level: L) -> Result<()> {
-    let env_filter = EnvFilter::new(format!("none,tower_http,pantin={}", log_level.as_ref()));
+    let env_filter = EnvFilter::new(format!("pantin={}", log_level.as_ref()));
     let format_layer = layer().with_file(true).with_line_number(true);
 
     set_global_default(Registry::default().with(env_filter).with(format_layer))

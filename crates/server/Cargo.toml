@@ -14,7 +14,7 @@ name = "pantin_server"
 path = "src/main.rs"
 
 [dependencies]
-axum = { version = "0.8.1", features = ["macros", "tracing"] }
+axum = { version = "0.8.1", features = ["macros"] }
 clap = { version = "4.5.30", features = ["derive", "env"] }
 color-eyre = "0.6.3"
 deadpool = "0.12.2"
