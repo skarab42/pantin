@@ -25,3 +25,7 @@ uuid = { version = "1.13.1", features = ["v4"] }
 # workspace dependencies
 pantin_marionette = { path = "../marionette" }
 pantin_process = { path = "../process" }
+
+[dev-dependencies]
+tokio = { version = "1.43.0", features = ["time"] }
+tracing-test = "0.2.5"
