@@ -1,8 +1,13 @@
 # pantin
 
-A screenshot microservice
+A microservice and libraries collection to take some screenshot with Firefox.
 
-WIP...
+> WIP...
+
+**Crates**
+
+- [pantin_process](./crates/process/README.md) Process management
+- [pantin_browser](./crates/browser/README.md) Browser management
 
 ## Docker
 
