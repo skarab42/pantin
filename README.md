@@ -44,18 +44,23 @@ cargo fmt
 
 ### Code coverage
 
-#### Install [tarpaulin](https://crates.io/crates/cargo-tarpaulin)
+#### Install [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov)
 
 ```shell
-cargo install cargo-tarpaulin
+cargo install cargo-llvm-cov
 ```
 
 #### Run test and collect coverage
 
 ```shell
-cargo tarpaulin --all-features --workspace --engine llvm --out html
+cargo llvm-cov --branch --workspace --html # --open 
 ```
 
 ```shell
-open ./tarpaulin-report.html
+open ./target/llvm-cov/html/index.html
 ```
+
+```shell
+cargo llvm-cov clean --workspace # remove artifacts that may affect the coverage results
+```
+

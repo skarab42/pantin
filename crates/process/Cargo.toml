@@ -22,3 +22,6 @@ tracing = "0.1.41"
 [dev-dependencies]
 tokio = { version = "1.43.0", features = ["time"] }
 tracing-test = "0.2.5"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

@@ -1,6 +1,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::multiple_crate_versions)]
+#![cfg_attr(coverage, feature(coverage_attribute))]
 
 //! Crate for launching and managing asynchronous processes.
 //!
@@ -177,6 +178,7 @@ fn trace_child_output(mut child: Box<dyn TokioChildWrapper>) -> Box<dyn TokioChi
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use tracing_test::traced_test;

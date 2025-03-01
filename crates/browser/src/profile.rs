@@ -174,6 +174,7 @@ fn user_pref(key: impl Display, value: impl Display) -> String {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use tracing_test::traced_test;
