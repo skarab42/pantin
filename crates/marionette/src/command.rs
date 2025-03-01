@@ -2,14 +2,20 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use serde::{Serialize, Serializer};
 
+/// Atomic counter used to generate unique message IDs.
 static MESSAGE_ID: AtomicU32 = AtomicU32::new(0);
 
+/// Represents the direction of a Marionette message.
+///
+/// - `Request`: Indicates that the message is a request.
+/// - `Response`: Indicates that the message is a response.
 #[derive(Debug)]
 pub enum Direction {
     Request = 0,
     Response = 1,
 }
 
+/// Implements custom serialization for [`Direction`] by serializing its numeric value.
 impl Serialize for Direction {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let value = match self {
@@ -24,6 +30,9 @@ impl Serialize for Direction {
 type Id = u32;
 type Name = String;
 
+/// Represents a Marionette command containing a direction, a unique ID, a command name, and associated data.
+///
+/// The [`Command`] struct is used to encapsulate a command message sent to or received from Marionette.
 #[derive(Debug, Serialize)]
 pub struct Command<T>(Direction, Id, Name, T);
 
