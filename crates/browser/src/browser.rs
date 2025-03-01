@@ -385,6 +385,8 @@ fn parse_url(url: &str) -> Result<String> {
 #[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
+    // use image::GenericImageView;
+
     use super::*;
 
     #[test]
@@ -483,23 +485,49 @@ mod tests {
         browser.close().await.expect("Closing browser");
     }
 
-    // // Test taking a screenshot in Base64 format.
-    // let screenshot_base64 = browser
-    //     .screenshot_base64(Default::default())
-    //     .await
-    //     .expect("Screenshot base64 failed");
-    // assert!(
-    //     !screenshot_base64.is_empty(),
-    //     "Screenshot (base64) should not be empty"
-    // );
-    //
-    // // Test taking a screenshot as bytes.
-    // let screenshot_bytes = browser
-    //     .screenshot_bytes(Default::default())
-    //     .await
-    //     .expect("Screenshot bytes failed");
-    // assert!(
-    //     !screenshot_bytes.is_empty(),
-    //     "Screenshot (bytes) should not be empty"
-    // );
+    #[tokio::test]
+    async fn test_browser_screenshot() {
+        let mut browser = Browser::open("firefox").await.expect("Opening browser");
+
+        browser
+            .navigate("https://www.infomaniak.com")
+            .await
+            .expect("Navigation failed");
+
+        let screenshot_base64 = browser
+            .screenshot_base64(webdriver::TakeScreenshotParameters::viewport())
+            .await
+            .expect("Screenshot base64 failed");
+        assert!(
+            !screenshot_base64.is_empty(),
+            "Screenshot (base64) should not be empty"
+        );
+
+        // let (expected_width, expected_height) =
+        //     browser.resize(500, 500).await.expect("Resize failed");
+
+        let screenshot_bytes = browser
+            .screenshot_bytes(webdriver::TakeScreenshotParameters::viewport())
+            .await
+            .expect("Screenshot bytes failed");
+        assert!(
+            !screenshot_bytes.is_empty(),
+            "Screenshot (bytes) should not be empty"
+        );
+
+        let format = image::guess_format(&screenshot_bytes).expect("Failed to guess image format");
+        assert_eq!(
+            format,
+            image::ImageFormat::Png,
+            "The screenshot is not in PNG format"
+        );
+
+        // TODO: fix `resize` to resize the viewport and not the window, or make another function like `resize_viewport` !?
+        // let img = image::load_from_memory(&screenshot_bytes).expect("Failed to decode PNG image");
+        // let (width, height) = img.dimensions();
+        // assert_eq!(width, u32::from(expected_width), "Image width mismatch");
+        // assert_eq!(height, u32::from(expected_height), "Image height mismatch");
+
+        browser.close().await.expect("Closing browser");
+    }
 }
