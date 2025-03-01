@@ -1,3 +1,10 @@
+//! Crate for controlling a Firefox browser instance with a temporary profile.
+//!
+//! This crate integrates the functionality provided by [`pantin_process`](https://github.com/skarab42/pantin/crates/process),
+//! [`pantin_marionette`](https://github.com/skarab42/pantin/crates/marionette) and the profile management from the [`profile`] module.
+//! It offers a unified interface to launch, control, and close a Firefox browser using a temporary profile,
+//! automatically cleaning up resources on drop.
+
 use std::{ffi::OsStr, fmt::Debug, result};
 
 use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
@@ -30,9 +37,17 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
+/// Alias for the element finding strategy used when taking a screenshot.
 pub type ScreenshotFindElementUsing = webdriver::FindElementUsing;
+
+/// Alias for the screenshot parameters.
 pub type ScreenshotParameters = webdriver::TakeScreenshotParameters;
 
+/// Represents a controlled Firefox browser instance with a temporary profile.
+///
+/// This struct wraps a temporary Firefox profile, a process managing the browser,
+/// and a Marionette connection to control the browser remotely,
+/// ensuring cleaning up resources on drop.
 #[derive(Debug)]
 pub struct Browser {
     uuid: Uuid,
@@ -42,6 +57,19 @@ pub struct Browser {
 }
 
 impl Browser {
+    /// Creates a new Browser instance using a given UUID and program.
+    ///
+    /// This function launches Firefox in headless mode with the necessary flags, creates a temporary
+    /// profile, and establishes a Marionette connection.
+    ///
+    /// # Arguments
+    ///
+    /// * `uuid` - Unique identifier for the browser instance.
+    /// * `program` - The path to the Firefox executable.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if profile creation, process spawning or Marionette initialization fails.
     #[instrument(name = "Browser::new")]
     pub async fn new<P>(uuid: Uuid, program: P) -> Result<Self>
     where
@@ -77,6 +105,15 @@ impl Browser {
         })
     }
 
+    /// Opens a new Browser instance with a randomly generated UUID.
+    ///
+    /// # Arguments
+    ///
+    /// * `program` - The path to the Firefox executable.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if profile creation, process spawning or Marionette initialization fails.
     pub async fn open<P>(program: P) -> Result<Self>
     where
         P: AsRef<OsStr> + Debug + Send,
@@ -84,22 +121,36 @@ impl Browser {
         Self::new(Uuid::new_v4(), program).await
     }
 
+    /// Returns the unique identifier of the browser instance.
     pub const fn uuid(&self) -> Uuid {
         self.uuid
     }
 
+    /// Returns the process ID of the Firefox process, if available.
     pub fn pid(&self) -> Option<u32> {
         self.process.id()
     }
 
+    /// Returns the current Marionette session ID.
     pub fn sid(&self) -> &str {
         self.marionette.session_id()
     }
 
+    /// Returns the current status of the Firefox process.
     pub fn status(&mut self) -> Status {
         self.process.status()
     }
 
+    /// Resizes the browser window.
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - The desired window width.
+    /// * `height` - The desired window height.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the resize operation fails.
     #[instrument(name = "Browser::resize", skip(self), fields(uuid = ?self.uuid))]
     pub async fn resize(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
         let rect = self
@@ -117,6 +168,17 @@ impl Browser {
         Ok((rect.width, rect.height))
     }
 
+    /// Navigates the browser to the specified URL.
+    ///
+    /// The URL is parsed and validated to ensure it uses either http or https.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The target URL to navigate to.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if URL parsing or the navigation command fails.
     #[instrument(name = "Browser::navigate", skip(self), fields(uuid = ?self.uuid))]
     pub async fn navigate<U: Into<String> + Send + Debug>(&mut self, url: U) -> Result<()> {
         self.marionette
@@ -128,6 +190,16 @@ impl Browser {
         Ok(())
     }
 
+    /// Executes a JavaScript script in the context of the browser.
+    ///
+    /// # Arguments
+    ///
+    /// * `script` - The JavaScript code to execute.
+    /// * `args` - Optional arguments to pass to the script.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the script execution fails.
     #[instrument(name = "Browser::execute_script", skip(self), fields(uuid = ?self.uuid))]
     pub async fn execute_script<S: Into<String> + Send + Debug>(
         &mut self,
@@ -146,6 +218,17 @@ impl Browser {
         Ok(())
     }
 
+    /// Injects CSS styles into the document header.
+    ///
+    /// Useful for modifying the appearance of the page (e.g., hiding scrollbars).
+    ///
+    /// # Arguments
+    ///
+    /// * `styles` - The CSS styles to inject.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the injection fails.
     #[instrument(name = "Browser::inject_header_styles", skip(self), fields(uuid = ?self.uuid))]
     pub async fn inject_header_styles<S: Into<String> + Debug>(&mut self, styles: S) -> Result<()> {
         let script = "
@@ -158,12 +241,27 @@ impl Browser {
         self.execute_script(script, Some(args)).await
     }
 
+    /// Hides the browser's scrollbar by injecting custom CSS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the operation fails.
     #[instrument(name = "Browser::hide_body_scrollbar", skip(self), fields(uuid = ?self.uuid))]
     pub async fn hide_body_scrollbar(&mut self) -> Result<()> {
         self.inject_header_styles("html, body { scrollbar-width: none !important; }")
             .await
     }
 
+    /// Finds an element on the page using the specified strategy and value.
+    ///
+    /// # Arguments
+    ///
+    /// * `using` - The element-finding strategy.
+    /// * `value` - The value to search for.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the element cannot be found.
     #[instrument(name = "Browser::find_element", skip(self), fields(uuid = ?self.uuid))]
     pub async fn find_element<V: Into<String> + Send + Debug>(
         &mut self,
@@ -183,6 +281,15 @@ impl Browser {
         Ok(element.value)
     }
 
+    /// Takes a screenshot and returns it as a Base64-encoded string.
+    ///
+    /// # Arguments
+    ///
+    /// * `parameters` - Parameters to customize the screenshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the screenshot command fails.
     #[instrument(name = "Browser::screenshot_base64", skip(self), fields(uuid = ?self.uuid))]
     pub async fn screenshot_base64(&mut self, parameters: ScreenshotParameters) -> Result<String> {
         let webdriver::TakeScreenshotResponse { base64_png } = self
@@ -193,6 +300,17 @@ impl Browser {
         Ok(base64_png)
     }
 
+    /// Takes a screenshot and returns the image as a byte vector.
+    ///
+    /// This method decodes the Base64-encoded screenshot.
+    ///
+    /// # Arguments
+    ///
+    /// * `parameters` - Parameters to customize the screenshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if decoding the screenshot fails.
     #[instrument(name = "Browser::screenshot_bytes", skip(self), fields(uuid = ?self.uuid))]
     pub async fn screenshot_bytes(&mut self, parameters: ScreenshotParameters) -> Result<Vec<u8>> {
         BASE64_STANDARD
@@ -200,6 +318,14 @@ impl Browser {
             .map_err(Error::DecodeScreenshot)
     }
 
+    /// Closes the browser instance.
+    ///
+    /// This method attempts to kill the Firefox process if it is still alive,
+    /// waits briefly (on Windows) for the process to terminate, and then removes the temporary profile.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the process termination or profile removal fails.
     #[instrument(name = "Browser::close", skip(self), fields(uuid = ?self.uuid))]
     pub async fn close(mut self) -> Result<Status> {
         debug!("Closing browser instance...");
@@ -225,6 +351,17 @@ impl Browser {
     }
 }
 
+/// Parses and validates a URL string, ensuring that only HTTP and HTTPS protocols are allowed.
+///
+/// If the URL is relative (without a base), it prepends "https://" and retries parsing.
+///
+/// # Arguments
+///
+/// * `url` - The URL string to parse.
+///
+/// # Errors
+///
+/// Returns an [`Error`] if parsing fails or the URL protocol is unsupported.
 fn parse_url(url: &str) -> Result<String> {
     match Url::parse(url) {
         Ok(parsed_url) => {
