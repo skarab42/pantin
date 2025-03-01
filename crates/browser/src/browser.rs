@@ -49,7 +49,7 @@ impl Browser {
     {
         debug!("Opening a new Browser instance...");
         let profile = Profile::new().await?;
-        let process = Process::new(
+        let process = Process::spawn(
             program,
             [
                 "--private",

@@ -18,3 +18,7 @@ process-wrap = { version = "8.2.0", features = ["tokio1"] }
 thiserror = "2.0.11"
 tokio = "1.43.0"
 tracing = "0.1.41"
+
+[dev-dependencies]
+tokio = { version = "1.43.0", features = ["time"] }
+tracing-test = "0.2.5"
