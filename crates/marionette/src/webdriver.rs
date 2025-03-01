@@ -34,7 +34,7 @@ pub struct NewSession {
 #[derive(Debug, Serialize)]
 pub struct ExecuteScriptParameters {
     pub script: String,
-    pub args: Vec<String>,
+    pub args: Vec<Value>,
 }
 
 #[derive(Debug, Deserialize)]

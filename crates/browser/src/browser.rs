@@ -12,7 +12,7 @@ use pantin_marionette::{Marionette, webdriver};
 use pantin_process::{Process, Status};
 use serde_json::Value;
 use thiserror::Error;
-use tracing::{debug, instrument};
+use tracing::{debug, error, instrument};
 use url::{ParseError, Url};
 use uuid::Uuid;
 
@@ -26,6 +26,8 @@ pub enum Error {
     Process(#[from] pantin_process::Error),
     #[error(transparent)]
     Marionette(#[from] pantin_marionette::Error),
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
     #[error("get child status failed: {0}")]
     ChildStatus(String),
     #[error("decode screenshot failed: {0}")]
@@ -142,7 +144,7 @@ impl Browser {
         self.process.status()
     }
 
-    /// Resizes the browser window.
+    /// Set the browser window size.
     ///
     /// # Arguments
     ///
@@ -152,8 +154,8 @@ impl Browser {
     /// # Errors
     ///
     /// Returns an [`Error`] if the resize operation fails.
-    #[instrument(name = "Browser::resize", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn resize(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
+    #[instrument(name = "Browser::set_window_size", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn set_window_size(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
         let rect = self
             .marionette
             .send(&webdriver::SetWindowRect::new(
@@ -205,7 +207,7 @@ impl Browser {
     pub async fn execute_script<S: Into<String> + Send + Debug>(
         &mut self,
         script: S,
-        args: Option<Vec<String>>,
+        args: Option<Vec<Value>>,
     ) -> Result<Value> {
         let response = self
             .marionette
@@ -241,9 +243,57 @@ impl Browser {
             style.innerHTML = arguments[0];
             document.head.appendChild(style);
         ";
-        let args = Vec::from([styles.into()]);
+        let args = Vec::from([Value::from(styles.into())]);
 
         self.execute_script(script, Some(args)).await
+    }
+
+    /// Get the browser window size to match viewport size.
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - The desired window width.
+    /// * `height` - The desired window height.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the resize operation fails.
+    #[instrument(name = "Browser::get_window_to_viewport_size", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn get_window_to_viewport_size(
+        &mut self,
+        width: u16,
+        height: u16,
+    ) -> Result<(u16, u16)> {
+        let script = "
+            let [width, height] = arguments;
+            return [
+                width + (window.outerWidth - window.innerWidth),
+                height + (window.outerHeight - window.innerHeight)
+            ];
+        ";
+        let args = Vec::from([Value::from(width), Value::from(height)]);
+
+        serde_json::from_value(self.execute_script(script, Some(args)).await?)
+            .map_err(Error::SerdeJson)
+    }
+
+    /// Set the browser viewport size.
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - The desired viewport width.
+    /// * `height` - The desired viewport height.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the resize operation fails.
+    #[instrument(name = "Browser::set_viewport_size", skip(self), fields(uuid = ?self.uuid))]
+    pub async fn set_viewport_size(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
+        let (window_width, window_height) = self.get_window_to_viewport_size(width, height).await?;
+
+        self.set_window_size(window_width, window_height).await?;
+
+        Ok((width, height))
     }
 
     /// Hides the browser's scrollbar by injecting custom CSS.
@@ -385,7 +435,7 @@ fn parse_url(url: &str) -> Result<String> {
 #[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
-    // use image::GenericImageView;
+    use image::GenericImageView;
 
     use super::*;
 
@@ -455,11 +505,17 @@ mod tests {
     async fn test_browser_resize() {
         let mut browser = Browser::open("firefox").await.expect("Opening browser");
 
-        let (width, height) = browser.resize(800, 600).await.expect("Resize failed");
+        let (width, height) = browser
+            .set_window_size(800, 600)
+            .await
+            .expect("Resize failed");
         assert_eq!(width, 800);
         assert_eq!(height, 600);
 
-        let (width, height) = browser.resize(1024, 720).await.expect("Resize failed");
+        let (width, height) = browser
+            .set_window_size(1024, 720)
+            .await
+            .expect("Resize failed");
         assert_eq!(width, 1024);
         assert_eq!(height, 720);
 
@@ -489,11 +545,6 @@ mod tests {
     async fn test_browser_screenshot() {
         let mut browser = Browser::open("firefox").await.expect("Opening browser");
 
-        browser
-            .navigate("https://www.infomaniak.com")
-            .await
-            .expect("Navigation failed");
-
         let screenshot_base64 = browser
             .screenshot_base64(webdriver::TakeScreenshotParameters::viewport())
             .await
@@ -503,8 +554,12 @@ mod tests {
             "Screenshot (base64) should not be empty"
         );
 
-        // let (expected_width, expected_height) =
-        //     browser.resize(500, 500).await.expect("Resize failed");
+        let (expected_width, expected_height) = browser
+            .set_viewport_size(1042, 742)
+            .await
+            .expect("Resize failed");
+        assert_eq!(expected_width, 1042, "Viewport width mismatch");
+        assert_eq!(expected_height, 742, "Viewport height mismatch");
 
         let screenshot_bytes = browser
             .screenshot_bytes(webdriver::TakeScreenshotParameters::viewport())
@@ -522,11 +577,10 @@ mod tests {
             "The screenshot is not in PNG format"
         );
 
-        // TODO: fix `resize` to resize the viewport and not the window, or make another function like `resize_viewport` !?
-        // let img = image::load_from_memory(&screenshot_bytes).expect("Failed to decode PNG image");
-        // let (width, height) = img.dimensions();
-        // assert_eq!(width, u32::from(expected_width), "Image width mismatch");
-        // assert_eq!(height, u32::from(expected_height), "Image height mismatch");
+        let img = image::load_from_memory(&screenshot_bytes).expect("Failed to decode PNG image");
+        let (width, height) = img.dimensions();
+        assert_eq!(width, 1042, "Image width mismatch");
+        assert_eq!(height, 742, "Image height mismatch");
 
         browser.close().await.expect("Closing browser");
     }
