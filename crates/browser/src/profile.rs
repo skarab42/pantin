@@ -1,4 +1,4 @@
-//! Crate for managing a Firefox profile for testing purposes.
+//! Crate for managing a Firefox profile.
 //!
 //! This crate wraps around the [`temp_dir`](https://docs.rs/temp_dir) crate to create a temporary
 //! Firefox profile directory which is automatically removed when dropped. It also creates a `user.js` file
