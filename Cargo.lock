@@ -844,6 +844,7 @@ dependencies = [
  "base64",
  "pantin_marionette",
  "pantin_process",
+ "serde_json",
  "temp-dir",
  "thiserror",
  "tokio",

@@ -39,7 +39,7 @@ pub struct ExecuteScriptParameters {
 
 #[derive(Debug, Deserialize)]
 pub struct ExecuteScriptResponse {
-    pub value: (),
+    pub value: Value,
 }
 
 #[derive(Debug, WebDriverCommand)]

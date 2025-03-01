@@ -10,6 +10,7 @@ use std::{ffi::OsStr, fmt::Debug, result};
 use base64::{DecodeError, Engine, prelude::BASE64_STANDARD};
 use pantin_marionette::{Marionette, webdriver};
 use pantin_process::{Process, Status};
+use serde_json::Value;
 use thiserror::Error;
 use tracing::{debug, instrument};
 use url::{ParseError, Url};
@@ -205,8 +206,9 @@ impl Browser {
         &mut self,
         script: S,
         args: Option<Vec<String>>,
-    ) -> Result<()> {
-        self.marionette
+    ) -> Result<Value> {
+        let response = self
+            .marionette
             .send(&webdriver::ExecuteScript::new(
                 webdriver::ExecuteScriptParameters {
                     script: script.into(),
@@ -215,7 +217,7 @@ impl Browser {
             ))
             .await?;
 
-        Ok(())
+        Ok(response.value)
     }
 
     /// Injects CSS styles into the document header.
@@ -230,7 +232,10 @@ impl Browser {
     ///
     /// Returns an [`Error`] if the injection fails.
     #[instrument(name = "Browser::inject_header_styles", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn inject_header_styles<S: Into<String> + Debug>(&mut self, styles: S) -> Result<()> {
+    pub async fn inject_header_styles<S: Into<String> + Debug>(
+        &mut self,
+        styles: S,
+    ) -> Result<Value> {
         let script = "
             let style = document.createElement('style');
             style.innerHTML = arguments[0];
@@ -247,7 +252,7 @@ impl Browser {
     ///
     /// Returns an [`Error`] if the operation fails.
     #[instrument(name = "Browser::hide_body_scrollbar", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn hide_body_scrollbar(&mut self) -> Result<()> {
+    pub async fn hide_body_scrollbar(&mut self) -> Result<Value> {
         self.inject_header_styles("html, body { scrollbar-width: none !important; }")
             .await
     }
@@ -374,4 +379,126 @@ fn parse_url(url: &str) -> Result<String> {
         Err(ParseError::RelativeUrlWithoutBase) => parse_url(format!("https://{url}").as_str()),
         Err(error) => Err(Error::ParseUrl(error)),
     }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_url_valid() {
+        let url = parse_url("http://example.com").expect("Should parse http url");
+        assert_eq!(url, "http://example.com/");
+
+        let url = parse_url("https://example.com").expect("Should parse https url");
+        assert_eq!(url, "https://example.com/");
+
+        let url = parse_url("example.com").expect("Should parse relative url");
+        assert_eq!(url, "https://example.com/");
+    }
+
+    #[test]
+    fn test_parse_url_invalid() {
+        let err = parse_url("about:config").unwrap_err();
+        match err {
+            Error::UnsupportedUrlProtocol => {},
+            _ => panic!("Expected UnsupportedUrlProtocol error"),
+        }
+
+        let err = parse_url("file://filename.ext").unwrap_err();
+        match err {
+            Error::UnsupportedUrlProtocol => {},
+            _ => panic!("Expected UnsupportedUrlProtocol error"),
+        }
+
+        let err = parse_url("not a valid url").unwrap_err();
+        match err {
+            Error::ParseUrl(_) => {},
+            _ => panic!("Expected ParseUrl error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_browser_open_and_close() {
+        let mut browser = Browser::open("firefox").await.expect("Opening browser");
+
+        assert!(!browser.uuid().is_nil(), "Browser UUID should not be nil");
+
+        assert!(
+            browser.pid().is_some(),
+            "Browser process ID should be available"
+        );
+
+        assert!(
+            !browser.sid().is_empty(),
+            "Marionette session ID should not be empty"
+        );
+
+        assert!(
+            matches!(browser.status(), Status::Alive),
+            "Browser status should be alive before close"
+        );
+
+        let status = browser.close().await.expect("Closing browser");
+
+        assert!(
+            matches!(status, Status::Exited(_)),
+            "Browser status should be exited after close"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_browser_resize() {
+        let mut browser = Browser::open("firefox").await.expect("Opening browser");
+
+        let (width, height) = browser.resize(800, 600).await.expect("Resize failed");
+        assert_eq!(width, 800);
+        assert_eq!(height, 600);
+
+        let (width, height) = browser.resize(1024, 720).await.expect("Resize failed");
+        assert_eq!(width, 1024);
+        assert_eq!(height, 720);
+
+        browser.close().await.expect("Closing browser");
+    }
+
+    #[tokio::test]
+    async fn test_browser_navigate_and_execute_script() {
+        let mut browser = Browser::open("firefox").await.expect("Opening browser");
+
+        browser
+            .navigate("https://www.infomaniak.com")
+            .await
+            .expect("Navigation failed");
+
+        let value = browser
+            .execute_script("return document.location.hostname", None)
+            .await
+            .expect("Script execution failed");
+
+        assert_eq!(value, "www.infomaniak.com");
+
+        browser.close().await.expect("Closing browser");
+    }
+
+    // // Test taking a screenshot in Base64 format.
+    // let screenshot_base64 = browser
+    //     .screenshot_base64(Default::default())
+    //     .await
+    //     .expect("Screenshot base64 failed");
+    // assert!(
+    //     !screenshot_base64.is_empty(),
+    //     "Screenshot (base64) should not be empty"
+    // );
+    //
+    // // Test taking a screenshot as bytes.
+    // let screenshot_bytes = browser
+    //     .screenshot_bytes(Default::default())
+    //     .await
+    //     .expect("Screenshot bytes failed");
+    // assert!(
+    //     !screenshot_bytes.is_empty(),
+    //     "Screenshot (bytes) should not be empty"
+    // );
 }
