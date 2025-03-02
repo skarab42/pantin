@@ -173,6 +173,8 @@ pub fn parse<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) -> Res
 #[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
+    use tokio::io::{AsyncWriteExt, DuplexStream, duplex};
+
     use super::*;
 
     #[test]
@@ -229,5 +231,92 @@ mod tests {
             },
             _ => panic!("Expected CommandFailure error"),
         }
+    }
+
+    fn fake_stream(data: Vec<u8>) -> DuplexStream {
+        let (mut client, server) = duplex(128);
+
+        tokio::spawn(async move {
+            client.write_all(data.as_slice()).await.unwrap();
+        });
+
+        server
+    }
+
+    #[tokio::test]
+    async fn test_read_length() {
+        let mut server = fake_stream(b"5:Hello".to_vec());
+
+        let message = read_length(&mut server)
+            .await
+            .expect("Failed to read message");
+        assert_eq!(message, 5);
+    }
+
+    #[tokio::test]
+    async fn test_read_length_error() {
+        let mut server = fake_stream(b"".to_vec());
+
+        let message = read_length(&mut server).await;
+        assert!(
+            matches!(message, Err(Error::UnexpectedEndOfResponse)),
+            "Expected UnexpectedEndOfResponse"
+        );
+
+        let mut server = fake_stream(b"X <- unexpected byte".to_vec());
+
+        let message = read_length(&mut server).await;
+        assert!(
+            matches!(message, Err(Error::UnexpectedByte { byte: 'X' })),
+            "Expected UnexpectedByte {{ byte: 'X' }}"
+        );
+
+        let mut server = fake_stream(b"42! <- unexpected byte".to_vec());
+
+        let message = read_length(&mut server).await;
+        assert!(
+            matches!(message, Err(Error::UnexpectedByte { byte: '!' })),
+            "Expected UnexpectedByte {{ byte: '!' }}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_read_string() {
+        let mut server = fake_stream(b"Hello".to_vec());
+
+        let message = read_string(&mut server, 5)
+            .await
+            .expect("Failed to read message");
+        assert_eq!(message, "Hello");
+    }
+
+    #[tokio::test]
+    async fn test_read_string_error() {
+        let mut server = fake_stream(b"".to_vec());
+
+        let message = read_string(&mut server, 5).await;
+        assert!(
+            matches!(message, Err(Error::UnexpectedEndOfResponse)),
+            "Expected UnexpectedEndOfResponse"
+        );
+
+        let mut server = fake_stream(vec![0xFF, 0xFF]);
+
+        let message = read_string(&mut server, 1).await;
+        assert!(
+            matches!(
+                message,
+                Err(Error::ResponseToString(string::FromUtf8Error { .. }))
+            ),
+            "Expected ResponseToString(FromUtf8Error)",
+        );
+    }
+
+    #[tokio::test]
+    async fn test_read() {
+        let mut server = fake_stream(b"5:Hello".to_vec());
+
+        let message = read(&mut server).await.expect("Failed to read message");
+        assert_eq!(message, "Hello");
     }
 }

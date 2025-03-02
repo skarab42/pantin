@@ -23,5 +23,8 @@ tracing = "0.1.41"
 # workspace dependencies
 pantin_derive = { path = "../derive" }
 
+[dev-dependencies]
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
