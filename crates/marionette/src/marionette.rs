@@ -212,3 +212,122 @@ async fn connect(address: &SocketAddr, timeout_ms: u64, interval_ms: u64) -> Res
         }
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use std::net::SocketAddr;
+
+    use tokio::{io::AsyncWriteExt, net::TcpListener};
+
+    use super::*;
+    use crate::response;
+
+    fn format_message(body: &str) -> String {
+        format!("{}:{}", body.len(), body)
+    }
+
+    #[tokio::test]
+    async fn test_marionette_client() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Failed to bind listener");
+        let addr: SocketAddr = listener.local_addr().expect("Failed to get local address");
+
+        tokio::spawn(async move {
+            let (mut socket, _) = listener
+                .accept()
+                .await
+                .expect("Failed to accept connection");
+
+            // --- Send Handshake response ---
+
+            let handshake_json = r#"{"marionetteProtocol":3,"applicationType":"gecko"}"#;
+            let handshake_msg = format_message(handshake_json);
+            socket
+                .write_all(handshake_msg.as_bytes())
+                .await
+                .expect("Failed to write handshake");
+
+            socket.flush().await.expect("Flush handshake");
+            sleep(Duration::from_millis(50)).await;
+
+            // --- Wait to receive the NewSession command from the client ---
+
+            let new_session = response::read(&mut socket)
+                .await
+                .expect("Failed to read ExecuteScript command");
+
+            let (_, command_id, _, _): (u8, u32, String, serde_json::Value) =
+                serde_json::from_str(new_session.as_str()).expect("Response array");
+
+            // --- Send NewSession response ---
+
+            let new_session_json = format!(
+                r#"[1,{command_id},null,{{"sessionId": "test-session-id", "capabilities": {{"browserName": "firefox", "version": "85.0"}}}}]"#,
+            );
+            let new_session_msg = format_message(new_session_json.as_str());
+            socket
+                .write_all(new_session_msg.as_bytes())
+                .await
+                .expect("Failed to write ExecuteScript");
+
+            socket.flush().await.expect("Flush ExecuteScript");
+            sleep(Duration::from_millis(50)).await;
+
+            // --- Wait to receive the ExecuteScript command from the client ---
+
+            let execute_script = response::read(&mut socket)
+                .await
+                .expect("Failed to read ExecuteScript command");
+
+            let (_, command_id, _, value): (u8, u32, String, serde_json::Value) =
+                serde_json::from_str(execute_script.as_str()).expect("Response array");
+
+            assert_eq!(
+                value.to_string(),
+                r#"{"args":[],"script":"return window.title;"}"#
+            );
+
+            // --- Send new ExecuteScript response ---
+
+            let execute_script_json =
+                format!(r#"[1,{command_id},null,{{"value": "Window title"}}]"#,);
+            let execute_script_msg = format_message(execute_script_json.as_str());
+            socket
+                .write_all(execute_script_msg.as_bytes())
+                .await
+                .expect("Failed to write ExecuteScript");
+
+            socket.flush().await.expect("Flush ExecuteScript");
+            sleep(Duration::from_millis(50)).await;
+
+            // --- Shutdown
+
+            socket.shutdown().await.expect("Server shutdown failed");
+        });
+
+        // --- Client side: Create a Marionette client ---
+
+        let mut client = Marionette::new(&addr)
+            .await
+            .expect("Marionette::new should succeed");
+
+        assert_eq!(client.protocol(), 3);
+        assert_eq!(client.session_id(), "test-session-id");
+
+        // --- Test to send a command  ---
+
+        let command = webdriver::ExecuteScript::new(webdriver::ExecuteScriptParameters {
+            script: "return window.title;".to_string(),
+            args: vec![],
+        });
+        let response: webdriver::ExecuteScriptResponse = client
+            .send(&command)
+            .await
+            .expect("Sending ExecuteScript command should succeed");
+
+        assert_eq!(response.value, "Window title");
+    }
+}
