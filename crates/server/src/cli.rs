@@ -1,6 +1,11 @@
+//! This module defines the configuration settings for the pantin server.
+
 use clap::{Parser, ValueEnum};
 use serde::Serialize;
 
+/// Represents the log verbosity level.
+///
+/// The variants are serialized as lowercase strings.
 #[derive(Debug, Copy, Clone, ValueEnum, Serialize)]
 #[serde(rename_all(serialize = "lowercase"))]
 pub enum LogLevel {
@@ -19,6 +24,10 @@ impl AsRef<str> for LogLevel {
     }
 }
 
+/// Holds all configuration settings to start the pantin server.
+///
+/// Values can be provided via command-line arguments or through environment variables.
+/// Default values are provided if none are specified.
 #[derive(Debug, Clone, Parser)]
 #[command(version, about, long_about = None)]
 pub struct PantinSettings {
@@ -55,6 +64,7 @@ pub struct PantinSettings {
     pub log_level: LogLevel,
 }
 
+/// Parses the command-line arguments and environment variables to produce a [`PantinSettings`] instance.
 pub fn parse() -> PantinSettings {
     PantinSettings::parse()
 }
