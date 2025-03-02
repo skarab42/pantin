@@ -239,7 +239,10 @@ mod tests {
         let (mut client, server) = duplex(128);
 
         tokio::spawn(async move {
-            client.write_all(data.as_slice()).await.unwrap();
+            client
+                .write_all(data.as_slice())
+                .await
+                .expect("Client write");
         });
 
         server

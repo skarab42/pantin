@@ -105,3 +105,117 @@ where
         })
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use serde_json::Value;
+    use tokio::io::{AsyncReadExt, duplex};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_write() {
+        let (mut client, mut server) = duplex(1024);
+
+        let command_id = write(&mut client, "test-write", &42)
+            .await
+            .expect("Write should succeed");
+
+        client.shutdown().await.expect("Client shutdown");
+
+        let mut buf = Vec::new();
+        server.read_to_end(&mut buf).await.expect("Server read");
+        let msg = String::from_utf8(buf).expect("Valid utf8");
+
+        let parts: Vec<&str> = msg.splitn(2, ':').collect();
+        assert_eq!(parts.len(), 2, "Message should contain a colon separator");
+
+        let length: usize = parts[0].parse().expect("Length prefix should be a number");
+        assert_eq!(
+            length,
+            parts[1].len(),
+            "Length prefix must match JSON body length"
+        );
+
+        let expected_json = format!("[0,{command_id},\"test-write\",42]",);
+        assert_eq!(parts[1], expected_json);
+    }
+
+    #[tokio::test]
+    async fn test_write_error() {
+        let (mut client, _server) = duplex(1024);
+
+        client.shutdown().await.expect("Client shutdown");
+
+        let command_id = write(&mut client, "test-write-error", &42).await;
+
+        assert!(
+            matches!(command_id, Err(Error::FailedToWriteRequest(_))),
+            "Expected FailedToWriteRequest"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_send_success() {
+        let (mut client, mut server) = duplex(1024);
+
+        tokio::spawn(async move {
+            let req_msg = response::read(&mut server).await.expect("Server read");
+            let req_json: Value = serde_json::from_str(&req_msg).expect("Valid JSON");
+            let req_id = req_json[1].as_u64().expect("Valid id");
+
+            let response_json = serde_json::json!([0, req_id, null, "ok"]);
+            let body = serde_json::to_string(&response_json).expect("Serialize response");
+            let response_msg = format!("{}:{}", body.len(), body);
+
+            server
+                .write_all(response_msg.as_bytes())
+                .await
+                .expect("Server write");
+            server.shutdown().await.expect("Server shutdown");
+        });
+
+        let result: String = send(&mut client, "dummy_cmd", &123)
+            .await
+            .expect("send should succeed");
+        assert_eq!(result, "ok", "Response should be 'ok'");
+    }
+
+    #[tokio::test]
+    async fn test_send_command_id_mismatch() {
+        let (mut client, mut server) = duplex(1024);
+
+        tokio::spawn(async move {
+            let req_msg = response::read(&mut server).await.expect("Server read");
+            let req_json: Value = serde_json::from_str(&req_msg).expect("Valid JSON");
+            let req_id = req_json[1].as_u64().expect("Valid id");
+
+            let response_json = serde_json::json!([0, req_id + 1, null, "mismatch"]);
+            let body = serde_json::to_string(&response_json).expect("Serialize response");
+            let response_msg = format!("{}:{}", body.len(), body);
+
+            server
+                .write_all(response_msg.as_bytes())
+                .await
+                .expect("Server write");
+            server.shutdown().await.expect("Server shutdown");
+        });
+
+        let result: Result<String> = send(&mut client, "dummy_cmd", &123).await;
+        match result {
+            Err(Error::CommandIdMismatch {
+                request_id,
+                response_id,
+            }) => {
+                assert_eq!(
+                    response_id,
+                    request_id + 1,
+                    "Response id should be request id + 1"
+                );
+            },
+            _ => panic!("Expected CommandIdMismatch error"),
+        }
+    }
+}
