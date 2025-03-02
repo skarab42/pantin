@@ -10,6 +10,7 @@ use std::{fmt::Debug, io, net::SocketAddr, result, time::Duration};
 
 use thiserror::Error;
 use tokio::{
+    io::{AsyncRead, AsyncWrite},
     net::TcpStream,
     time::{Instant, sleep},
 };
@@ -109,17 +110,19 @@ impl Marionette {
     }
 }
 
-/// Sends a new session request over the provided stream.
+/// Reads the handshake message from the provided stream.
 ///
 /// # Arguments
 ///
-/// * `stream` - A mutable reference to the stream.
+/// * `stream` - A mutable reference to the TCP stream.
 ///
 /// # Errors
 ///
-/// Returns an [`Error::Request`] if the request fails.
-async fn new_session(stream: &mut TcpStream) -> Result<webdriver::NewSessionResponse> {
-    send(stream, &webdriver::NewSession::new(None)).await
+/// Returns an [`Error::Handshake`] if the handshake fails.
+async fn read_handshake<S: AsyncRead + Unpin>(stream: &mut S) -> Result<handshake::Handshake> {
+    handshake::Handshake::read(stream)
+        .await
+        .map_err(Error::Handshake)
 }
 
 /// Sends a command over the provided stream and returns its response.
@@ -130,14 +133,15 @@ async fn new_session(stream: &mut TcpStream) -> Result<webdriver::NewSessionResp
 ///
 /// # Arguments
 ///
-/// * `stream` - A mutable reference to the TCP stream.
+/// * `stream` - A mutable reference to the stream.
 /// * `command` - A reference to the command to be sent.
 ///
 /// # Errors
 ///
 /// Returns an [`Error::Request`] if sending the command fails.
-async fn send<C>(stream: &mut TcpStream, command: &C) -> Result<C::Response>
+async fn send<S, C>(stream: &mut S, command: &C) -> Result<C::Response>
 where
+    S: AsyncRead + AsyncWrite + Unpin,
     C: webdriver::Command + Send + Sync,
 {
     request::send(stream, command.name(), &command.parameters())
@@ -145,19 +149,19 @@ where
         .map_err(Error::Request)
 }
 
-/// Reads the handshake message from the provided stream.
+/// Sends a new session request over the provided stream.
 ///
 /// # Arguments
 ///
-/// * `stream` - A mutable reference to the TCP stream.
+/// * `stream` - A mutable reference to the stream.
 ///
 /// # Errors
 ///
-/// Returns an [`Error::Handshake`] if the handshake fails.
-async fn read_handshake(stream: &mut TcpStream) -> Result<handshake::Handshake> {
-    handshake::Handshake::read(stream)
-        .await
-        .map_err(Error::Handshake)
+/// Returns an [`Error::Request`] if the request fails.
+async fn new_session<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
+) -> Result<webdriver::NewSessionResponse> {
+    send(stream, &webdriver::NewSession::new(None)).await
 }
 
 /// Attempts to connect to the given address with a timeout and retry interval.
