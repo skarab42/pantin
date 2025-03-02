@@ -123,10 +123,12 @@ pub struct Failure {
     pub stacktrace: String,
 }
 
-/// Internal enum used to deserialize Marionette responses.
+/// Enum used to deserialize Marionette responses to either a [success](Response::Success) or a [failure](Response::Failure).
+///
+/// This enum is untagged and differentiates based on the structure of the response.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum Response<T> {
+pub enum Response<T> {
     Success(#[allow(unused)] u8, u32, (), T),
     Failure(#[allow(unused)] u8, u32, Failure, ()),
 }
