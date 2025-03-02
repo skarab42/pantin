@@ -1,3 +1,8 @@
+//! This module implements the handshake procedure for Marionette.
+//!
+//! It reads a handshake message from a TCP stream using the Marionette JSON response format
+//! and verifies that the response contains the expected values.
+
 use std::result;
 
 use serde::Deserialize;
@@ -19,6 +24,12 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
+/// Represents a handshake message received from the Marionette server.
+///
+/// The handshake message is deserialized from JSON and contains:
+///
+/// - `marionette_protocol`: the version of the Marionette protocol, expected to be `3`.
+/// - `application_type`: the type of the application, expected to be `"gecko"`.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct Handshake {
@@ -27,6 +38,23 @@ pub struct Handshake {
 }
 
 impl Handshake {
+    /// Reads and parses a handshake message from the given stream.
+    ///
+    /// This function:
+    /// 1. Reads a JSON-formatted response from the stream using [`response::read`].
+    /// 2. Parses the JSON into a [`Handshake`] using [`response::parse_raw`].
+    /// 3. Verifies that `application_type` is `"gecko"` and `marionette_protocol` equals 3.
+    ///
+    /// # Arguments
+    ///
+    /// * `stream` - A mutable reference to a [`TcpStream`] from which the handshake message is read.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - Parsing the response fails.
+    /// - The `application_type` is not `"gecko"`.
+    /// - The `marionette_protocol` is not 3.
     pub async fn read(stream: &mut TcpStream) -> Result<Self> {
         debug!("Reading Handshake...");
         let json = response::read(stream).await?;
