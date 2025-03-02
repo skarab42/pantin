@@ -61,3 +61,72 @@ impl<T> Command<T> {
         self.1
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_direction_serialization() {
+        let request = serde_json::to_string(&Direction::Request).unwrap();
+        let response = serde_json::to_string(&Direction::Response).unwrap();
+
+        assert_eq!(request, "0", "Direction::Request should serialize to 0");
+        assert_eq!(response, "1", "Direction::Response should serialize to 1");
+    }
+
+    #[test]
+    fn test_command_id_increment() {
+        let command_1 = Command::new(Direction::Request, "request-test-1", 101);
+        let command_2 = Command::new(Direction::Response, "response-test-2", 102);
+        let command_3 = Command::new(Direction::Request, "request-test-3", 103);
+
+        assert!(
+            command_1.id() < command_2.id(),
+            "Command IDs should increment"
+        );
+        assert!(
+            command_2.id() < command_3.id(),
+            "Command IDs should increment"
+        );
+    }
+
+    #[test]
+    fn test_request_serialization() {
+        let command = Command::new_request("request-serialize", ("hello", "world"));
+        let serialized = serde_json::to_string(&command).unwrap();
+
+        let expected = format!(
+            "[0,{},\"request-serialize\",[\"hello\",\"world\"]]",
+            command.id()
+        );
+        assert_eq!(serialized, expected);
+    }
+
+    #[test]
+    fn test_response_serialization() {
+        #[derive(Serialize)]
+        struct Response {
+            message: String,
+            count: u8,
+        }
+
+        let command = Command::new(
+            Direction::Response,
+            "response-serialize",
+            Response {
+                message: "hello world".into(),
+                count: 42,
+            },
+        );
+        let serialized = serde_json::to_string(&command).unwrap();
+
+        let expected = format!(
+            "[1,{},\"response-serialize\",{{\"message\":\"hello world\",\"count\":42}}]",
+            command.id()
+        );
+        assert_eq!(serialized, expected);
+    }
+}

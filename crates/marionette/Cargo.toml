@@ -22,3 +22,6 @@ tracing = "0.1.41"
 
 # workspace dependencies
 pantin_derive = { path = "../derive" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
