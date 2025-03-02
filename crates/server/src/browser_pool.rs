@@ -1,13 +1,64 @@
+//! Module for managing a pool of browser instances.
+//!
+//! This module integrates with [deadpool](https://crates.io/crates/deadpool) to create a managed pool of
+//! browser instances. The pool is built around a custom [`BrowserManager`] that implements the
+//! [`managed::Manager`] trait. This manager is responsible for creating, recycling, and detaching
+//! browser instances.
+//!
+//! # `BrowserManager`
+//!
+//! The [`BrowserManager`] struct holds the command or binary path needed to launch a browser. It
+//! implements the manager trait for creating new browser instances using [`Browser::open`] from the
+//! [`pantin_browser`] crate.
+//!
+//! # `BrowserPool`
+//!
+//! The [`BrowserPool`] type alias defines a pool of browsers managed by the [`BrowserManager`].
+//!
+//! ## Example
+//!
+//! ```rust
+//! use pantin_browser::browser::Browser;
+//! use pantin_server::browser_pool::{BrowserManager, BrowserPool};
+//! use deadpool::managed::Pool;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create a browser manager with the browser program path.
+//!     let manager = BrowserManager::new("firefox");
+//!
+//!     // Create a pool of browser instances.
+//!     let pool: BrowserPool = Pool::builder(manager)
+//!         .max_size(5)
+//!         .build()?;
+//!
+//!     // Get a browser from the pool.
+//!     let mut browser = pool.get().await?;
+//!
+//!     // Use the browser instance...
+//!
+//!     Ok(())
+//! }
+//! ```
+
 use deadpool::managed;
 use pantin_browser::{Browser, browser};
 use tracing::debug;
 
+/// The browser manager responsible for creating and recycling [`Browser`] instances.
+///
+/// It holds the program path used to launch the browser.
 #[derive(Debug)]
 pub struct BrowserManager {
     program: String,
 }
 
 impl BrowserManager {
+    /// Creates a new [`BrowserManager`] with the specified browser program.
+    ///
+    /// # Arguments
+    ///
+    /// * `program` - A value convertible to a `String` that represents the browser command or the path to the binary.
     pub fn new<P: Into<String>>(program: P) -> Self {
         Self {
             program: program.into(),
@@ -19,6 +70,7 @@ impl managed::Manager for BrowserManager {
     type Type = Browser;
     type Error = browser::Error;
 
+    /// Creates a new [`Browser`] instance.
     async fn create(&self) -> Result<Self::Type, Self::Error> {
         let browser = Browser::open(self.program.clone()).await?;
         debug!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Create Browser instance in pool");
@@ -26,6 +78,10 @@ impl managed::Manager for BrowserManager {
         Ok(browser)
     }
 
+    /// Recycles an existing browser instance.
+    ///
+    /// This method is called by the pool when a browser instance is returned.
+    /// If needed it can perform any necessary recycling steps.
     async fn recycle(
         &self,
         browser: &mut Self::Type,
@@ -36,9 +92,13 @@ impl managed::Manager for BrowserManager {
         Ok(())
     }
 
+    /// Detaches a browser instance from the pool.
+    ///
+    /// This method is called when a browser instance is permanently removed from the pool.
     fn detach(&self, browser: &mut Self::Type) {
         debug!(uuid=?browser.uuid(), pid=?browser.pid(), sid=?browser.sid(), "Detach Browser instance from pool");
     }
 }
 
+/// A type alias for a pool of browser instances managed by [`BrowserManager`].
 pub type BrowserPool = managed::Pool<BrowserManager>;
