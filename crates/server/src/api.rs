@@ -143,3 +143,51 @@ pub type Result<T = Response, E = Error> = result::Result<T, E>;
 #[from_request(via(axum::extract::Query), rejection(Error))]
 pub struct Query<T>(pub T);
 
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_success_serialization() {
+        let success = Success::new("ok");
+        let json = serde_json::to_string(&success).expect("Serialization should succeed");
+        assert!(json.contains(r#""data":"ok""#));
+    }
+
+    #[test]
+    fn test_failure_serialization() {
+        let failure = Failure::new("error");
+        let json = serde_json::to_string(&failure).expect("Serialization should succeed");
+        assert!(json.contains(r#""cause":"error""#));
+    }
+
+    #[tokio::test]
+    async fn test_error_into_response() {
+        let error = Error::MissingField("field".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let error = Error::Browser(pantin_browser::Error::ParseUrl(url::ParseError::EmptyHost));
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let error = Error::Browser(pantin_browser::Error::Marionette(
+            pantin_marionette::Error::Request(pantin_marionette::request::Error::Response(
+                pantin_marionette::response::Error::CommandFailure(
+                    42,
+                    pantin_marionette::response::Failure {
+                        error: "test-error".into(),
+                        message: "test-message".into(),
+                        stacktrace: "test-trace".into(),
+                    },
+                ),
+            )),
+        ));
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        // TODO: add more testes
+    }
+}
