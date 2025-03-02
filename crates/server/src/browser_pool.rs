@@ -102,3 +102,63 @@ impl managed::Manager for BrowserManager {
 
 /// A type alias for a pool of browser instances managed by [`BrowserManager`].
 pub type BrowserPool = managed::Pool<BrowserManager>;
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use deadpool::managed::Pool;
+
+    use super::*;
+
+    #[tokio::test]
+    #[tracing_test::traced_test]
+    async fn test_browser_manager() {
+        let manager = BrowserManager::new("firefox");
+        assert_eq!(manager.program, "firefox");
+
+        let pool: BrowserPool = Pool::builder(manager)
+            .max_size(1)
+            .build()
+            .expect("Failed to build pool");
+
+        let browser_uuid: uuid::Uuid;
+
+        {
+            let browser = Box::pin(pool.get()).await.expect("Firefox browser");
+            browser_uuid = browser.uuid();
+
+            assert_eq!(
+                browser_uuid.to_string().len(),
+                36,
+                "Browser should have a valid uuid"
+            );
+        }
+
+        assert!(logs_contain(
+            "pantin_server::browser_pool: Create Browser instance in pool"
+        ));
+
+        {
+            let browser = Box::pin(pool.get()).await.expect("Firefox browser");
+
+            assert_eq!(
+                browser_uuid,
+                browser.uuid(),
+                "Browser should be recycled and have a same uuid as preview"
+            );
+        }
+
+        assert!(logs_contain(
+            "pantin_server::browser_pool: Recycle Browser instance from pool"
+        ));
+
+        for browser in pool.retain(|_, _| false).removed {
+            browser.close().await.expect("Browser close");
+        }
+
+        assert!(logs_contain(
+            "pantin_server::browser_pool: Detach Browser instance from pool"
+        ));
+    }
+}

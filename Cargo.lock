@@ -1343,6 +1343,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "tracing-test",
  "uuid",
 ]
 

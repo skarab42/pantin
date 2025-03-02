@@ -177,8 +177,6 @@ fn user_pref(key: impl Display, value: impl Display) -> String {
 #[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
-    use tracing_test::traced_test;
-
     use super::*;
 
     #[tokio::test]
@@ -242,12 +240,12 @@ mod tests {
     }
 
     #[tokio::test]
-    #[traced_test]
+    #[tracing_test::traced_test]
     async fn test_profile_tracing() {
         let profile = Profile::new().await.expect("Failed to create profile");
 
         assert!(logs_contain(
-            " pantin_browser::profile: Creating a new Profile instance..."
+            "pantin_browser::profile: Creating a new Profile instance..."
         ));
 
         assert!(logs_contain(

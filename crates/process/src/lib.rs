@@ -181,8 +181,6 @@ fn trace_child_output(mut child: Box<dyn TokioChildWrapper>) -> Box<dyn TokioChi
 #[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
-    use tracing_test::traced_test;
-
     use super::*;
 
     fn spawn_sleep_process() -> Process {
@@ -236,7 +234,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[traced_test]
+    #[tracing_test::traced_test]
     async fn test_process_tracing() {
         let mut process = spawn_sleep_process();
 

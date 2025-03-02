@@ -32,5 +32,8 @@ uuid = { version = "1.13.1", features = ["v4"] }
 pantin_browser = { path = "../browser" }
 pantin_marionette = { path = "../marionette" }
 
+[dev-dependencies]
+tracing-test = "0.2.5"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
