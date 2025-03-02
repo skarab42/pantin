@@ -74,3 +74,74 @@ impl Handshake {
         Ok(handshake)
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use tokio::io::{AsyncWriteExt, duplex};
+
+    use super::*;
+
+    fn format_message(body: &str) -> String {
+        format!("{}:{}", body.len(), body)
+    }
+
+    #[tokio::test]
+    async fn test_handshake_read_success() {
+        let (mut client, mut server) = duplex(1024);
+        let json = r#"{"marionetteProtocol":3,"applicationType":"gecko"}"#;
+        let message = format_message(json);
+
+        tokio::spawn(async move {
+            server.write_all(message.as_bytes()).await.unwrap();
+            server.shutdown().await.unwrap();
+        });
+
+        let handshake = Handshake::read(&mut client)
+            .await
+            .expect("Expected valid handshake");
+        assert_eq!(handshake.marionette_protocol, 3);
+        assert_eq!(handshake.application_type, "gecko");
+    }
+
+    #[tokio::test]
+    async fn test_handshake_unexpected_application_type() {
+        let json = r#"{"marionetteProtocol":3,"applicationType":"not-gecko"}"#;
+        let message = format_message(json);
+        let (mut client, mut server) = duplex(1024);
+
+        tokio::spawn(async move {
+            server.write_all(message.as_bytes()).await.unwrap();
+            server.shutdown().await.unwrap();
+        });
+
+        let error = Handshake::read(&mut client)
+            .await
+            .expect_err("Expected an UnexpectedApplicationType error");
+        match error {
+            Error::UnexpectedApplicationType(app) => assert_eq!(app, "not-gecko"),
+            _ => panic!("Expected UnexpectedApplicationType error, got {error:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handshake_unexpected_marionette_protocol() {
+        let (mut client, mut server) = duplex(1024);
+        let json = r#"{"marionetteProtocol":2,"applicationType":"gecko"}"#;
+        let message = format_message(json);
+
+        tokio::spawn(async move {
+            server.write_all(message.as_bytes()).await.unwrap();
+            server.shutdown().await.unwrap();
+        });
+
+        let error = Handshake::read(&mut client)
+            .await
+            .expect_err("Expected an UnexpectedMarionetteProtocolVersion error");
+        match error {
+            Error::UnexpectedMarionetteProtocolVersion(version) => assert_eq!(version, 2),
+            _ => panic!("Expected UnexpectedMarionetteProtocolVersion error, got {error:?}",),
+        }
+    }
+}
