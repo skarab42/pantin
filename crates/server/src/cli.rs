@@ -68,3 +68,71 @@ pub struct PantinSettings {
 pub fn parse() -> PantinSettings {
     PantinSettings::parse()
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_log_level_as_ref() {
+        assert_eq!(LogLevel::Info.as_ref(), "info");
+        assert_eq!(LogLevel::Debug.as_ref(), "debug");
+        assert_eq!(LogLevel::Trace.as_ref(), "trace");
+    }
+
+    #[test]
+    fn test_default_settings() {
+        let args = vec!["pantin"];
+        let settings = PantinSettings::parse_from(args);
+
+        assert_eq!(settings.server_host, "localhost");
+        assert_eq!(settings.server_port, 4242);
+        assert_eq!(settings.request_timeout, 30);
+        assert_eq!(settings.browser_pool_max_size, 5);
+        assert_eq!(settings.browser_max_age, 60);
+        assert_eq!(settings.browser_max_recycle_count, 10);
+        assert_eq!(settings.browser_program, "firefox");
+        assert!(
+            matches!(settings.log_level, LogLevel::Info),
+            "Should have Info log level, got: {:?}",
+            settings.log_level
+        );
+    }
+
+    #[test]
+    fn test_custom_settings() {
+        // Provide custom CLI arguments.
+        let args = vec![
+            "pantin",
+            "--server-host",
+            "example.com",
+            "--server-port",
+            "8080",
+            "--request-timeout",
+            "60",
+            "--browser-pool-max-size",
+            "10",
+            "--browser-max-age",
+            "120",
+            "--browser-max-recycle-count",
+            "20",
+            "--browser-program",
+            "custom_browser",
+            "--log-level",
+            "debug",
+        ];
+        let settings = PantinSettings::parse_from(args);
+
+        assert_eq!(settings.server_host, "example.com");
+        assert_eq!(settings.server_port, 8080);
+        assert_eq!(settings.request_timeout, 60);
+        assert_eq!(settings.browser_pool_max_size, 10);
+        assert_eq!(settings.browser_max_age, 120);
+        assert_eq!(settings.browser_max_recycle_count, 20);
+        assert_eq!(settings.browser_program, "custom_browser");
+        assert!(matches!(settings.log_level, LogLevel::Debug));
+    }
+}
