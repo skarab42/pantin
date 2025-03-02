@@ -48,3 +48,53 @@ impl State {
         Ok(Box::pin(self.browser_pool.get()).await?)
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use deadpool::managed::Pool;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_state() {
+        let manager = BrowserManager::new("firefox");
+
+        let pool: BrowserPool = Pool::builder(manager)
+            .max_size(1)
+            .build()
+            .expect("Failed to build pool");
+
+        let state = State::new(pool);
+
+        {
+            let browser = state.get_browser().await.expect("Firefox browser");
+
+            assert_eq!(
+                browser.uuid().to_string().len(),
+                36,
+                "Browser should have a valid uuid"
+            );
+        }
+
+        for browser in state.browser_pool.retain(|_, _| false).removed {
+            browser.close().await.expect("Browser close");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_state_get_browser_error() {
+        let manager = BrowserManager::new("invalid-browser-command");
+
+        let pool: BrowserPool = Pool::builder(manager)
+            .max_size(1)
+            .build()
+            .expect("Failed to build pool");
+
+        let state = State::new(pool);
+        let browser = state.get_browser().await;
+
+        assert!(matches!(browser, Err(Error::PoolError(_))));
+    }
+}
