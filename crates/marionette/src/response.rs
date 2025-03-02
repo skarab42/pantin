@@ -168,3 +168,52 @@ pub fn parse<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) -> Res
         Response::Failure(_, id, failure, ()) => Err(Error::CommandFailure(id, failure)),
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_raw() {
+        let json = "42";
+        let value: i32 = parse_raw(json).expect("Failed to parse raw JSON");
+        assert_eq!(value, 42);
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct DummyResponse {
+        result: String,
+    }
+
+    #[test]
+    fn test_parse_success() {
+        let json = r#"[1, 123, null, {"result": "ok"}]"#;
+        let (id, dummy): (u32, DummyResponse) =
+            parse(json).expect("Failed to parse success response");
+        assert_eq!(id, 123);
+        assert_eq!(
+            dummy,
+            DummyResponse {
+                result: "ok".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_failure() {
+        let json =
+            r#"[1, 456, {"error": "err", "message": "failed", "stacktrace": "trace"}, null]"#;
+        let err = parse::<_, DummyResponse>(json).expect_err("Expected a failure response");
+        match err {
+            Error::CommandFailure(id, failure) => {
+                assert_eq!(id, 456);
+                assert_eq!(failure.error, "err");
+                assert_eq!(failure.message, "failed");
+                assert_eq!(failure.stacktrace, "trace");
+            },
+            _ => panic!("Expected CommandFailure error"),
+        }
+    }
+}
