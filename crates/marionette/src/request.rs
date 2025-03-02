@@ -6,7 +6,7 @@
 use std::{fmt::Debug, io, result};
 
 use serde::{Serialize, de::DeserializeOwned};
-use tokio::{io::AsyncWriteExt, net::TcpStream};
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tracing::debug;
 
 use crate::{command::Command, response};
@@ -45,8 +45,9 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 ///
 /// Returns an [`Error::ConvertJson`] if JSON conversion fails or an [`Error::FailedToWriteRequest`]
 /// if writing to the stream fails.
-pub async fn write<C, D>(stream: &mut TcpStream, command: C, data: &D) -> Result<u32>
+pub async fn write<S, C, D>(stream: &mut S, command: C, data: &D) -> Result<u32>
 where
+    S: AsyncRead + AsyncWrite + Unpin,
     C: Into<String> + Send,
     D: Serialize + Send + Sync,
 {
@@ -84,8 +85,9 @@ where
 ///
 /// Returns an [`Error`] if writing the request fails, reading or parsing the response fails,
 /// or if there is a mismatch between the command IDs in the request and response.
-pub async fn send<C, D, T>(stream: &mut TcpStream, command: C, data: &D) -> Result<T>
+pub async fn send<S, C, D, T>(stream: &mut S, command: C, data: &D) -> Result<T>
 where
+    S: AsyncRead + AsyncWrite + Unpin,
     C: Into<String> + Send,
     D: Serialize + Send + Sync,
     T: DeserializeOwned + Debug,
