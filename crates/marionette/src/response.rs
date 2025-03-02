@@ -1,3 +1,10 @@
+//! Module for reading and parsing responses from the Marionette server over a TCP stream.
+//!
+//! This module provides functions to read raw responses asynchronously,
+//! convert them into UTF-8 strings, and parse them into strongly-typed responses.
+//!
+//! It also defines error types and structures to handle command failures.
+
 use std::{fmt::Debug, io, result, string};
 
 use serde::{Deserialize, de::DeserializeOwned};
@@ -27,6 +34,14 @@ pub enum Error {
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
+/// Reads the length prefix of a message from the TCP stream.
+///
+/// The length is encoded as ASCII digits terminated by a colon (`:`). This function reads bytes
+/// until it encounters the colon and returns the accumulated length as a [`usize`].
+///
+/// # Errors
+///
+/// Returns an [`Error`] if the reading fails or an unexpected byte is encountered.
 async fn read_length(stream: &mut TcpStream) -> Result<usize> {
     let mut bytes = 0usize;
 
@@ -52,6 +67,18 @@ async fn read_length(stream: &mut TcpStream) -> Result<usize> {
     Ok(bytes)
 }
 
+/// Reads a string of a given length from the TCP stream.
+///
+/// This function continuously reads from the stream until it has read the specified number of bytes,
+/// then converts the byte vector into a UTF-8 string.
+///
+/// # Arguments
+///
+/// * `bytes` - The number of bytes to read.
+///
+/// # Errors
+///
+/// Returns an [`Error`] if reading fails or the conversion to UTF-8 fails.
 async fn read_string(stream: &mut TcpStream, bytes: usize) -> Result<String> {
     let mut total_byte_read = 0;
     let buffer = &mut [0u8; 8192];
@@ -74,12 +101,21 @@ async fn read_string(stream: &mut TcpStream, bytes: usize) -> Result<String> {
     String::from_utf8(payload).map_err(Error::ResponseToString)
 }
 
+/// Reads a complete response from the TCP stream.
+///
+/// This function first reads the length prefix using [`read_length`],
+/// then reads the corresponding string using [`read_string`].
+///
+/// # Errors
+///
+/// Returns an [`Error`] if reading fails or the conversion to UTF-8 fails.
 pub async fn read(stream: &mut TcpStream) -> Result<String> {
     let bytes = read_length(stream).await?;
 
     read_string(stream, bytes).await
 }
 
+/// Represents a command failure response from the Marionette server.
 #[derive(Debug, Deserialize)]
 pub struct Failure {
     pub error: String,
@@ -87,6 +123,7 @@ pub struct Failure {
     pub stacktrace: String,
 }
 
+/// Internal enum used to deserialize Marionette responses.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum Response<T> {
@@ -94,6 +131,15 @@ enum Response<T> {
     Failure(#[allow(unused)] u8, u32, Failure, ()),
 }
 
+/// Parses a raw JSON string into the expected type.
+///
+/// # Arguments
+///
+/// * `json` - A raw JSON string reference.
+///
+/// # Errors
+///
+/// Returns an [`Error`] if JSON deserialization fails.
 pub fn parse_raw<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) -> Result<T> {
     serde_json::from_str(json.as_ref()).map_err(|error| {
         error!(?json, "Raw JSON response");
@@ -101,6 +147,18 @@ pub fn parse_raw<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) ->
     })
 }
 
+/// Parses a JSON response from Marionette into a tuple containing the command ID and the result data.
+///
+/// The JSON response is expected to conform to one of the variants in the [`Response`] enum.
+/// If the response indicates a failure, an [`Error::CommandFailure`] is returned.
+///
+/// # Arguments
+///
+/// * `json` - A raw JSON string reference.
+///
+/// # Errors
+///
+/// Returns an [`Error`] if JSON deserialization fails or the response represents a failed command.
 pub fn parse<J: AsRef<str> + Debug, T: DeserializeOwned + Debug>(json: J) -> Result<(u32, T)> {
     let response = parse_raw(json)?;
     debug!(?response, "Got response");
