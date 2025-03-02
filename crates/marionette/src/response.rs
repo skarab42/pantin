@@ -9,7 +9,7 @@ use std::{fmt::Debug, io, result, string};
 
 use serde::{Deserialize, de::DeserializeOwned};
 use thiserror::Error;
-use tokio::{io::AsyncReadExt, net::TcpStream};
+use tokio::io::{AsyncRead, AsyncReadExt};
 use tracing::{debug, error};
 
 #[derive(Error, Debug)]
@@ -42,7 +42,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 /// # Errors
 ///
 /// Returns an [`Error`] if the reading fails or an unexpected byte is encountered.
-async fn read_length(stream: &mut TcpStream) -> Result<usize> {
+async fn read_length<S: AsyncRead + Unpin>(stream: &mut S) -> Result<usize> {
     let mut bytes = 0usize;
 
     loop {
@@ -79,7 +79,7 @@ async fn read_length(stream: &mut TcpStream) -> Result<usize> {
 /// # Errors
 ///
 /// Returns an [`Error`] if reading fails or the conversion to UTF-8 fails.
-async fn read_string(stream: &mut TcpStream, bytes: usize) -> Result<String> {
+async fn read_string<S: AsyncRead + Unpin>(stream: &mut S, bytes: usize) -> Result<String> {
     let mut total_byte_read = 0;
     let buffer = &mut [0u8; 8192];
     let mut payload = Vec::with_capacity(bytes);
@@ -109,7 +109,7 @@ async fn read_string(stream: &mut TcpStream, bytes: usize) -> Result<String> {
 /// # Errors
 ///
 /// Returns an [`Error`] if reading fails or the conversion to UTF-8 fails.
-pub async fn read(stream: &mut TcpStream) -> Result<String> {
+pub async fn read<S: AsyncRead + Unpin>(stream: &mut S) -> Result<String> {
     let bytes = read_length(stream).await?;
 
     read_string(stream, bytes).await
@@ -180,6 +180,20 @@ mod tests {
         let json = "42";
         let value: i32 = parse_raw(json).expect("Failed to parse raw JSON");
         assert_eq!(value, 42);
+    }
+
+    #[test]
+    fn test_parse_raw_error() {
+        let json = "['not-a-i32']";
+        let value: Result<i32> = parse_raw(json);
+
+        match value {
+            Err(Error::ParseResponse(error)) => assert_eq!(
+                error.to_string(),
+                "invalid type: sequence, expected i32 at line 1 column 0"
+            ),
+            _ => panic!("Expected ParseResponse"),
+        }
     }
 
     #[derive(Debug, Deserialize, PartialEq)]
