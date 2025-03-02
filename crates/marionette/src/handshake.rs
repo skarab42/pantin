@@ -7,7 +7,7 @@ use std::result;
 
 use serde::Deserialize;
 use thiserror::Error;
-use tokio::net::TcpStream;
+use tokio::io::AsyncRead;
 use tracing::{debug, error};
 
 use crate::response;
@@ -55,7 +55,7 @@ impl Handshake {
     /// - Parsing the response fails.
     /// - The `application_type` is not `"gecko"`.
     /// - The `marionette_protocol` is not 3.
-    pub async fn read(stream: &mut TcpStream) -> Result<Self> {
+    pub async fn read<S: AsyncRead + Unpin>(stream: &mut S) -> Result<Self> {
         debug!("Reading Handshake...");
         let json = response::read(stream).await?;
         let handshake: Self = response::parse_raw(json)?;
