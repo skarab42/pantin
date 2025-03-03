@@ -1,5 +1,34 @@
-// Mostly taken from `tokio-graceful-shutdown` crate
-// https://github.com/Finomnis/tokio-graceful-shutdown/blob/a02c1b474034419d6ad9d30c66b1cafd7045773b/src/signal_handling.rs
+//! [`tokio-graceful-shutdown`](https://github.com/Finomnis/tokio-graceful-shutdown) crate.
+//!
+//! ## Platform-Specific Behavior
+//!
+//! - **Unix:**  
+//!   Listens for SIGTERM and SIGINT signals. When either signal is received, a debug message is logged and the
+//!   shutdown process continues.
+//!
+//! - **Windows:**  
+//!   Listens for various control signals: CTRL_C, CTRL_BREAK, CTRL_CLOSE, and CTRL_SHUTDOWN. When any of these signals
+//!   is received, a corresponding debug message is logged.
+//!
+//! ## Usage
+//!
+//! Use the [`shutdown`] function to block asynchronously until a shutdown signal is received:
+//!
+//! ```rust
+//! use pantin_shutdown::shutdown;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Wait for a shutdown signal (e.g., SIGTERM or SIGINT on Unix, CTRL_C on Windows)
+//!     shutdown().await?;
+//!     println!("Shutdown signal received, exiting gracefully.");
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Errors
+//!
+//! The [`Error`] enum defined in this module is used to wrap any I/O errors encountered while setting up the signal handlers.
 
 use std::{io, result};
 
@@ -49,6 +78,13 @@ async fn shutdown_impl() -> io::Result<()> {
     Ok(())
 }
 
+/// Asynchronously waits for a shutdown signal from the operating system.
+///
+/// This function blocks until a shutdown signal is received.
+///
+/// # Errors
+///
+/// Returns an [`Error::RegisterShutdown`] if setting up the signal handlers fails.
 pub async fn shutdown() -> Result<()> {
     shutdown_impl().await.map_err(Error::RegisterShutdown)
 }
