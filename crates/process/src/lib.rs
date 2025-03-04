@@ -36,7 +36,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Status {
     Alive,
-    Exiting,
+    Terminated,
     Exited(i32),
     Error(String),
 }
@@ -107,7 +107,7 @@ impl Process {
     pub fn status(&mut self) -> Status {
         match self.child.try_wait() {
             Ok(None) => Status::Alive,
-            Ok(Some(status)) => status.code().map_or(Status::Exiting, Status::Exited),
+            Ok(Some(status)) => status.code().map_or(Status::Terminated, Status::Exited),
             Err(error) => Status::Error(error.to_string()),
         }
     }

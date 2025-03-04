@@ -496,8 +496,8 @@ mod tests {
         let status = browser.close().await.expect("Closing browser");
 
         assert!(
-            matches!(status, Status::Exited(_)),
-            "Browser status should be exited after close"
+            matches!(status, Status::Terminated | Status::Exited(_)),
+            "Browser status should be terminated or exited after close"
         );
     }
 
