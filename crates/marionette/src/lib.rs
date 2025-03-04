@@ -10,7 +10,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```no_run
 //! use std::net::SocketAddr;
 //! use pantin_marionette::Marionette;
 //! use pantin_marionette::webdriver::{Navigate, NavigateParameters};
