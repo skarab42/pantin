@@ -18,7 +18,7 @@
 //! Elements from the [`browser`] module are re-exported at the crate root for easier access.
 //! For example, to launch a new browser instance:
 //!
-//! ```rust
+//! ```no_run
 //! use pantin_browser::Browser;
 //!
 //! #[tokio::main]

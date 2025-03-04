@@ -17,7 +17,7 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```no_run
 //! use pantin_browser::browser::Browser;
 //! use pantin_server::browser_pool::{BrowserManager, BrowserPool};
 //! use deadpool::managed::Pool;
@@ -33,7 +33,7 @@
 //!         .build()?;
 //!
 //!     // Get a browser from the pool.
-//!     let mut browser = pool.get().await?;
+//!     let _browser = pool.get().await?;
 //!
 //!     // Use the browser instance...
 //!

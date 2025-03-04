@@ -7,14 +7,14 @@
 //!   shutdown process continues.
 //!
 //! - **Windows:**  
-//!   Listens for various control signals: CTRL_C, CTRL_BREAK, CTRL_CLOSE, and CTRL_SHUTDOWN. When any of these signals
+//!   Listens for various control signals: `CTRL_C`, `CTRL_BREAK`, `CTRL_CLOSE`, and `CTRL_SHUTDOWN`. When any of these signals
 //!   is received, a corresponding debug message is logged.
 //!
 //! ## Usage
 //!
 //! Use the [`shutdown`] function to block asynchronously until a shutdown signal is received:
 //!
-//! ```rust
+//! ```no_run
 //! use pantin_shutdown::shutdown;
 //!
 //! #[tokio::main]

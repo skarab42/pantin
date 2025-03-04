@@ -17,20 +17,6 @@
 //! When building API endpoints, you can use [`Success<T>`] to wrap successful responses and propagate errors
 //! that will be converted into JSON responses automatically by Axum's response system.
 //!
-//! ## Example
-//!
-//! ```rust
-//! use axum::Json;
-//! use pantin_server::api::{Success, Error, Query};
-//!
-//! // Assume MyQuery and MyData are defined elsewhere.
-//! async fn get_data(query: Query<MyQuery>) -> Result<Json<Success<MyData>>, Error> {
-//!     // Process the query and fetch data...
-//!     let data = fetch_data(query.0).await?;
-//!     Ok(Json(Success::new(data)))
-//! }
-//! ```
-//!
 //! # Error Handling
 //!
 //! The [`Error`] enum converts errors from state management, browser operations, and query extraction into

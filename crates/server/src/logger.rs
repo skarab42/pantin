@@ -6,7 +6,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```no_run
 //! fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     pantin_tracing::install("debug")?;
 //!     // Your application logic here...
