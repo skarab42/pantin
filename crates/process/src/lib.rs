@@ -186,6 +186,7 @@ mod tests {
     fn spawn_sleep_process() -> Process {
         #[cfg(unix)]
         let process = Process::spawn("sleep", &["1"]);
+
         #[cfg(windows)]
         let process = Process::spawn("timeout", ["1"]);
 
@@ -220,10 +221,19 @@ mod tests {
 
         process.kill().await.expect("Should kill");
 
-        match process.status() {
+        let status = process.status();
+
+        #[cfg(windows)]
+        match status {
             Status::Exited(actual_code) => assert_eq!(actual_code, 1),
             status => panic!("Unexpected status: {status:?}"),
         }
+
+        #[cfg(unix)]
+        assert!(
+            matches!(status, Status::Terminated),
+            "Expected Terminated status, got: {status:?}"
+        );
     }
 
     #[tokio::test]
