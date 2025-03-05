@@ -1,0 +1,10 @@
+/*
+    - https://github.com/mozilla/geckodriver/issues/1744#issuecomment-2041416706
+    - https://www.userchrome.org/how-create-userchrome-css.html
+    - https://searchfox.org/mozilla-release/rev/e38acda63624c7058df4c5adb1f61f9787ed1968/modules/libpref/init/all.js#3740
+*/
+
+#navigator-toolbox {
+    height: 0 !important;
+    border: 0 !important;
+}

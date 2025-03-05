@@ -248,54 +248,6 @@ impl Browser {
         self.execute_script(script, Some(args)).await
     }
 
-    /// Get the browser window size to match viewport size.
-    ///
-    /// # Arguments
-    ///
-    /// * `width` - The desired window width.
-    /// * `height` - The desired window height.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`Error`] if the resize operation fails.
-    #[instrument(name = "Browser::get_window_to_viewport_size", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn get_window_to_viewport_size(
-        &mut self,
-        width: u16,
-        height: u16,
-    ) -> Result<(u16, u16)> {
-        let script = "
-            let [width, height] = arguments;
-            return [
-                width + (window.outerWidth - window.innerWidth),
-                height + (window.outerHeight - window.innerHeight)
-            ];
-        ";
-        let args = Vec::from([Value::from(width), Value::from(height)]);
-
-        serde_json::from_value(self.execute_script(script, Some(args)).await?)
-            .map_err(Error::SerdeJson)
-    }
-
-    /// Set the browser viewport size.
-    ///
-    /// # Arguments
-    ///
-    /// * `width` - The desired viewport width.
-    /// * `height` - The desired viewport height.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`Error`] if the resize operation fails.
-    #[instrument(name = "Browser::set_viewport_size", skip(self), fields(uuid = ?self.uuid))]
-    pub async fn set_viewport_size(&mut self, width: u16, height: u16) -> Result<(u16, u16)> {
-        let (window_width, window_height) = self.get_window_to_viewport_size(width, height).await?;
-
-        self.set_window_size(window_width, window_height).await?;
-
-        Ok((width, height))
-    }
-
     /// Hides the browser's scrollbar by injecting custom CSS.
     ///
     /// # Errors
@@ -555,11 +507,11 @@ mod tests {
         );
 
         let (expected_width, expected_height) = browser
-            .set_viewport_size(1042, 742)
+            .set_window_size(1234, 567)
             .await
             .expect("Resize failed");
-        assert_eq!(expected_width, 1042, "Viewport width mismatch");
-        assert_eq!(expected_height, 742, "Viewport height mismatch");
+        assert_eq!(expected_width, 1234, "Viewport width mismatch");
+        assert_eq!(expected_height, 567, "Viewport height mismatch");
 
         let screenshot_bytes = browser
             .screenshot_bytes(webdriver::TakeScreenshotParameters::viewport())
@@ -579,8 +531,8 @@ mod tests {
 
         let img = image::load_from_memory(&screenshot_bytes).expect("Failed to decode PNG image");
         let (width, height) = img.dimensions();
-        assert_eq!(width, 1042, "Image width mismatch");
-        assert_eq!(height, 742, "Image height mismatch");
+        assert_eq!(width, 1234, "Image width mismatch");
+        assert_eq!(height, 567, "Image height mismatch");
 
         browser.close().await.expect("Closing browser");
     }

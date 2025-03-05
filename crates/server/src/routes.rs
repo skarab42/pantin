@@ -83,7 +83,7 @@ pub async fn screenshot(
 
     let width = query.width.unwrap_or(800);
     let height = query.height.unwrap_or(600);
-    browser.set_viewport_size(width, height).await?;
+    browser.set_window_size(width, height).await?;
 
     let delay = query.delay.unwrap_or(0);
     if delay > 0 {

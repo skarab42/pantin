@@ -21,6 +21,8 @@ pub enum Error {
     GetFreeLocalAddress(#[source] io::Error),
     #[error("create temporary profile 'user.js' file failed")]
     CreateUserJsFile(#[source] io::Error),
+    #[error("create temporary profile 'userChrome.css' file failed")]
+    CreateUserChromeCssFile(#[source] io::Error),
     #[error("temporary profile directory path is undefined")]
     UndefinedPath,
 }
@@ -28,6 +30,8 @@ pub enum Error {
 pub type Result<T, E = Error> = result::Result<T, E>;
 
 static USER_JS: [u8; include_bytes!("user.js").len()] = *include_bytes!("user.js");
+static USER_CHROME_CSS: [u8; include_bytes!("userChrome.css").len()] =
+    *include_bytes!("userChrome.css");
 
 /// Represents a temporary Firefox profile.
 ///
@@ -53,7 +57,9 @@ impl Profile {
         debug!("Creating a new Profile instance...");
         let directory = create_directory()?;
         debug!("Created profile directory at: {:?}", directory.path());
-        let marionette_address = crate_user_js_file(&directory).await?;
+        let marionette_address = create_user_js_file(&directory).await?;
+
+        create_user_chrome_css_file(&directory).await?;
 
         Ok(Self {
             directory,
@@ -108,7 +114,7 @@ impl Profile {
 /// # Errors
 ///
 /// Returns an [`Error`] if writing the file or obtaining a free local address fails.
-async fn crate_user_js_file(directory: &TempDir) -> Result<SocketAddr> {
+async fn create_user_js_file(directory: &TempDir) -> Result<SocketAddr> {
     debug!("Creating 'user.js' inside the temporary profile directory.");
     let marionette_address = get_free_local_address().await?;
     debug!(
@@ -126,6 +132,33 @@ async fn crate_user_js_file(directory: &TempDir) -> Result<SocketAddr> {
         .map_err(Error::CreateUserJsFile)?;
 
     Ok(marionette_address)
+}
+
+/// Creates the `chrome/userChrome.css` file within the temporary profile directory.
+///
+/// # Arguments
+///
+/// * `directory` - The temporary directory where the `chrome` directory will be created.
+///
+/// # Errors
+///
+/// Returns an [`Error`] if writing the file fail.
+async fn create_user_chrome_css_file(directory: &TempDir) -> Result<()> {
+    let chrome_path = directory.child("chrome");
+
+    debug!("Write 'chrome' directory at: {:?}", chrome_path);
+    tokio::fs::create_dir(&chrome_path)
+        .await
+        .map_err(Error::CreateUserChromeCssFile)?;
+
+    let user_chrome_css_path = chrome_path.join("userChrome.css");
+
+    debug!("Write 'userChrome.css' file at: {:?}", user_chrome_css_path);
+    write(&user_chrome_css_path, &USER_CHROME_CSS.to_vec())
+        .await
+        .map_err(Error::CreateUserChromeCssFile)?;
+
+    Ok(())
 }
 
 /// Creates a new temporary directory for the Firefox profile.

@@ -133,4 +133,9 @@ user_pref("toolkit.startup.max_resumed_crashes", -1);
 // Disable webapp updates.
 user_pref("browser.webapps.checkForUpdates", 0);
 
+// Support for legacy customizations that rely on checking the user profile directory for these stylesheets:
+//  * userContent.css
+//  * userChrome.css
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+
 // THESE LINES WERE AUTOMATICALLY ADDED BY PANTIN DURING COMPILATION
