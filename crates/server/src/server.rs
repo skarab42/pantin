@@ -1,3 +1,9 @@
+//! This module starts the Pantin Server.
+//!
+//! It builds the Axum router with middleware (request IDs, tracing, timeouts), initializes the browser pool,
+//! and runs the server with graceful shutdown support. Background tasks are spawned to recycle and clean up
+//! browser instances.
+
 use std::time::Duration;
 
 use axum::{
@@ -38,6 +44,23 @@ impl request_id::MakeRequestId for MakeRequestId {
     }
 }
 
+/// Starts the Pantin Server with the given configuration settings.
+///
+/// This function:
+/// 1. Configures middleware layers for request IDs, tracing, and timeouts.
+/// 2. Initializes the browser pool and shared state.
+/// 3. Builds the Axum router with routes (e.g. `/ping`, `/screenshot`) and fallback handling.
+/// 4. Spawns background tasks to recycle and clean up browser instances.
+/// 5. Binds a TCP listener to the configured host and port and serves the router with graceful shutdown.
+///
+/// # Arguments
+///
+/// * `settings` - The configuration settings parsed from CLI and environment variables.
+///
+/// # Errors
+///
+/// Returns an [`Error`] if binding to the address fails, or if any initialization step
+/// (e.g. setting up middleware or the browser pool) encounters an error.
 pub async fn start(settings: cli::PantinSettings) -> Result<()> {
     debug!(?settings, "Starting...");
 
