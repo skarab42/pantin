@@ -1,3 +1,8 @@
+//! This module provides HTTP handlers for screenshot functionality in the Pantin Server API.
+//!
+//! It allows clients to request screenshots of web pages using a headless browser.
+//! The API supports various screenshot modes and response formats.
+
 use std::time::Duration;
 
 use axum::{
@@ -16,56 +21,80 @@ use crate::{
     state,
 };
 
+/// Health-check endpoint that returns a JSON response with "pong".
 pub async fn ping() -> Response {
     Json(Success::<String>::new("pong".into())).into_response()
 }
 
+/// Fallback endpoint that returns a 404 Not Found error as a JSON response.
 pub async fn not_found() -> Response {
     (StatusCode::NOT_FOUND, Json(Failure::new("not found"))).into_response()
 }
 
+/// Specifies the mode used to capture a screenshot.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all(deserialize = "lowercase"))]
 pub enum ScreenshotMode {
+    /// Capture the full page.
     Full,
+    /// Capture only the visible (viewport) area.
     Viewport,
+    /// Capture a specific element identified by a CSS selector.
     Selector,
+    /// Capture a specific element identified by an `XPath` expression.
     XPath,
 }
 
+/// Specifies the response type for the screenshot.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all(deserialize = "kebab-case"))]
 pub enum ScreenshotResponseType {
+    /// Returns the screenshot as an attachment (with a filename).
     Attachment,
+    /// Returns the screenshot as a Base64-encoded PNG string.
     ImagePngBase64,
+    /// Returns the screenshot as raw PNG bytes.
     ImagePngBytes,
+    /// Returns a JSON containing a Base64-encoded PNG string.
     JsonPngBase64,
+    /// Returns a JSON containing raw PNG bytes.
     JsonPngBytes,
 }
 
+/// Represents the query parameters for a screenshot request.
+///
+/// This structure is deserialized from the URL query string.
 #[derive(Debug, Deserialize)]
 pub struct ScreenshotQuery {
-    /// Url of the page to take a screenshot.
+    /// URL of the page to take a screenshot.
     url: String,
-    /// Delay in milliseconds to take the screenshot,
-    /// after the `DOMContentLoaded` event occurs (default: 0).
+    /// Delay in milliseconds after `DOMContentLoaded` before taking the screenshot (default: 0).
     delay: Option<u16>,
-    /// Screenshot with (default: 800).
+    /// Screenshot width (default: 800).
     width: Option<u16>,
     /// Screenshot height (default: 600).
     height: Option<u16>,
-    /// Should show the scrollbar on `html` and `body` elements (default: false).
+    /// Whether to show the scrollbar on `html` and `body` elements (default: false).
     scrollbar: Option<bool>,
-    /// One of `'attachment'`, `'image-png-base64'`, `'image-png-bytes'`, `'json-png-base64'` or `'json-png-bytes'` (default: 'image-png-bytes').
+    /// Response type: one of 'attachment', 'image-png-base64', 'image-png-bytes', 'json-png-base64' or 'json-png-bytes' (default: 'image-png-bytes').
     response_type: Option<ScreenshotResponseType>,
-    /// One of `'full'`, `'viewport'`, `'selector'` or `'xpath'` (default: 'viewport').
+    /// Screenshot mode: one of 'full', 'viewport', 'selector' or 'xpath' (default: 'viewport').
     mode: Option<ScreenshotMode>,
-    /// CSS selector, only applied and required if `mode = 'selector'` (default: None).
+    /// CSS selector (required if `mode` is 'selector').
     selector: Option<String>,
-    /// `XPath`, only applied and required if `mode = 'xpath'` (default: None).
+    /// `XPath` expression (required if `mode` is 'xpath').
     xpath: Option<String>,
 }
 
+/// Handles screenshot requests by processing query parameters, interacting with a browser,
+/// and returning the screenshot in the requested format.
+///
+/// This endpoint performs the following steps:
+/// 1. Retrieves a browser instance from the shared state.
+/// 2. Navigates the browser to the specified URL.
+/// 3. Optionally hides scrollbars, sets the window size, and waits for a delay.
+/// 4. Determines the screenshot mode and captures the screenshot.
+/// 5. Returns the screenshot as raw bytes, Base64-encoded data, an attachment, or JSON-wrapped data.
 pub async fn screenshot(
     state: State<state::State>,
     Query(query): Query<ScreenshotQuery>,
