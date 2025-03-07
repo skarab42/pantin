@@ -32,6 +32,7 @@ uuid.workspace = true
 
 [dev-dependencies]
 nix = "0.29.0"
+reqwest = "0.12.12"
 tracing-test.workspace = true
 url.workspace = true
 

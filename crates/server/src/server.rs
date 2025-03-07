@@ -150,3 +150,73 @@ async fn cleaning_loop(browser_pool: BrowserPool) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::*;
+    use crate::cli::{LogLevel, PantinSettings};
+
+    #[tokio::test]
+    async fn test_server_ping() {
+        let settings = PantinSettings {
+            server_host: "127.0.0.1".into(),
+            server_port: 3001,
+            request_timeout: 5,
+            browser_pool_max_size: 1,
+            browser_max_age: 1,
+            browser_max_recycle_count: 1,
+            browser_program: "firefox".into(),
+            log_level: LogLevel::Info,
+        };
+
+        let server_handle = tokio::spawn(async move { start(settings).await });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        let response = reqwest::get("http://127.0.0.1:3001/ping")
+            .await
+            .expect("Failed to send GET request");
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+
+        let body = response.text().await.expect("Failed to read response body");
+        assert_eq!(
+            body, r#"{"data":"pong"}"#,
+            "Expected pong JSON response, got: {body}"
+        );
+
+        server_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn test_server_not_found() {
+        let settings = PantinSettings {
+            server_host: "127.0.0.1".into(),
+            server_port: 3002,
+            request_timeout: 5,
+            browser_pool_max_size: 1,
+            browser_max_age: 1,
+            browser_max_recycle_count: 1,
+            browser_program: "firefox".into(),
+            log_level: LogLevel::Info,
+        };
+
+        let server_handle = tokio::spawn(async move { start(settings).await });
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        let response = reqwest::get("http://127.0.0.1:3002/prout")
+            .await
+            .expect("Failed to send GET request");
+        assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+
+        let body = response.text().await.expect("Failed to read response body");
+        assert_eq!(
+            body, r#"{"cause":"not found"}"#,
+            "Expected not found JSON response, got: {body}"
+        );
+
+        server_handle.abort();
+    }
+}
