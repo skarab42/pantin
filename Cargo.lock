@@ -1333,6 +1333,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "deadpool",
+ "nix",
  "pantin_browser",
  "pantin_marionette",
  "serde",

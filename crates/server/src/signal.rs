@@ -88,3 +88,49 @@ async fn shutdown_impl() -> io::Result<()> {
 pub async fn shutdown() -> Result<()> {
     shutdown_impl().await.map_err(Error::RegisterShutdown)
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage, coverage(off))]
+mod tests {
+    use tokio::time::{Duration, timeout};
+
+    use super::*;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_shutdown_unix() {
+        use nix::{
+            sys::signal::{Signal, kill},
+            unistd::getpid,
+        };
+
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(200)).await;
+            kill(getpid(), Signal::SIGINT).expect("Failed to send SIGINT");
+        });
+
+        let result = timeout(Duration::from_millis(500), shutdown()).await;
+        assert!(
+            result.is_ok(),
+            "shutdown() did not complete within the timeout period"
+        );
+        assert!(
+            result.as_ref().unwrap().is_ok(),
+            "shutdown() returned an error: {:?}",
+            result.unwrap_err()
+        );
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn test_shutdown_windows_no_signal() {
+        // On Windows, we cannot easily simulate a signal without affecting the process.
+        // Instead, we check that shutdown() does not immediately complete if no signal is sent.
+        let shutdown_future = shutdown();
+        let result = timeout(Duration::from_millis(100), shutdown_future).await;
+        assert!(
+            result.is_err(),
+            "Expected shutdown() to not complete without a signal on Windows"
+        );
+    }
+}

@@ -33,6 +33,7 @@ pantin_browser = { path = "../browser" }
 pantin_marionette = { path = "../marionette" }
 
 [dev-dependencies]
+nix = "0.29.0"
 tracing-test = "0.2.5"
 url = "2.5.4"
 
