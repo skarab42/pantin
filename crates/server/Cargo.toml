@@ -1,7 +1,7 @@
 [package]
 name = "pantin_server"
 description = "Pantin server"
-readme = "../../README.md"
+readme = "./README.md"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
@@ -18,24 +18,22 @@ axum = { version = "0.8.1", features = ["macros"] }
 clap = { version = "4.5.30", features = ["derive", "env"] }
 color-eyre = "0.6.3"
 deadpool = "0.12.2"
-serde = { version = "1.0.218", features = ["derive"] }
-serde_json = "1.0.139"
-thiserror = "2.0.11"
-tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread", "signal"] }
+pantin_browser.workspace = true
+pantin_marionette.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["timeout", "trace", "request-id"] }
-tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-uuid = { version = "1.13.1", features = ["v4"] }
-
-# workspace dependencies
-pantin_browser = { path = "../browser" }
-pantin_marionette = { path = "../marionette" }
+tracing.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 nix = "0.29.0"
-tracing-test = "0.2.5"
-url = "2.5.4"
+tracing-test.workspace = true
+url.workspace = true
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

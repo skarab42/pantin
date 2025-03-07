@@ -1,7 +1,7 @@
 [package]
 name = "pantin_derive"
 description = "Pantin macros"
-readme = "../../README.md"
+readme = "./README.md"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
