@@ -155,27 +155,63 @@ async fn cleaning_loop(browser_pool: BrowserPool) -> Result<()> {
 #[cfg_attr(coverage, coverage(off))]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
+    use std::sync::atomic::{AtomicU16, Ordering};
+
+    use tokio::task::JoinHandle;
+    use url::Url;
+
     use super::*;
     use crate::cli::{LogLevel, PantinSettings};
 
+    static PORT_COUNTER: AtomicU16 = AtomicU16::new(3000);
+
+    fn get_next_port() -> u16 {
+        PORT_COUNTER.fetch_add(1, Ordering::SeqCst)
+    }
+
+    struct ServerAssert {
+        settings: PantinSettings,
+        base_url: Url,
+    }
+
+    impl ServerAssert {
+        fn new() -> Self {
+            let settings = PantinSettings {
+                server_host: "127.0.0.1".into(),
+                server_port: get_next_port(),
+                request_timeout: 1,
+                browser_pool_max_size: 1,
+                browser_max_age: 1,
+                browser_max_recycle_count: 1,
+                browser_program: "firefox".into(),
+                log_level: LogLevel::Trace,
+            };
+            let url_string = format!("http://{}:{}", settings.server_host, settings.server_port);
+            let base_url = Url::parse(url_string.as_str()).expect("Parse base url");
+
+            Self { settings, base_url }
+        }
+
+        async fn spawn(&self) -> JoinHandle<Result<()>> {
+            let settings = self.settings.clone();
+            let handle = tokio::spawn(async move { start(settings).await });
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            handle
+        }
+
+        fn url<P: AsRef<str>>(&self, path: P) -> Url {
+            self.base_url
+                .join(path.as_ref())
+                .expect("Join path to base url")
+        }
+    }
+
     #[tokio::test]
     async fn test_server_ping() {
-        let settings = PantinSettings {
-            server_host: "127.0.0.1".into(),
-            server_port: 3001,
-            request_timeout: 5,
-            browser_pool_max_size: 1,
-            browser_max_age: 1,
-            browser_max_recycle_count: 1,
-            browser_program: "firefox".into(),
-            log_level: LogLevel::Info,
-        };
+        let server_assert = ServerAssert::new();
+        let server_handle = server_assert.spawn().await;
 
-        let server_handle = tokio::spawn(async move { start(settings).await });
-
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        let response = reqwest::get("http://127.0.0.1:3001/ping")
+        let response = reqwest::get(server_assert.url("ping"))
             .await
             .expect("Failed to send GET request");
         assert_eq!(response.status(), reqwest::StatusCode::OK);
@@ -191,22 +227,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_server_not_found() {
-        let settings = PantinSettings {
-            server_host: "127.0.0.1".into(),
-            server_port: 3002,
-            request_timeout: 5,
-            browser_pool_max_size: 1,
-            browser_max_age: 1,
-            browser_max_recycle_count: 1,
-            browser_program: "firefox".into(),
-            log_level: LogLevel::Info,
-        };
+        let server_assert = ServerAssert::new();
+        let server_handle = server_assert.spawn().await;
 
-        let server_handle = tokio::spawn(async move { start(settings).await });
-
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        let response = reqwest::get("http://127.0.0.1:3002/prout")
+        let response = reqwest::get(server_assert.url("this-route-does-not-exists"))
             .await
             .expect("Failed to send GET request");
         assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
@@ -214,6 +238,25 @@ mod tests {
         let body = response.text().await.expect("Failed to read response body");
         assert_eq!(
             body, r#"{"cause":"not found"}"#,
+            "Expected not found JSON response, got: {body}"
+        );
+
+        server_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn test_server_screenshot() {
+        let server_assert = ServerAssert::new();
+        let server_handle = server_assert.spawn().await;
+
+        let response = reqwest::get(server_assert.url("screenshot"))
+            .await
+            .expect("Failed to send GET request");
+        assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
+
+        let body = response.text().await.expect("Failed to read response body");
+        assert_eq!(
+            body, r#"{"cause":"Failed to deserialize query string: missing field `url`"}"#,
             "Expected not found JSON response, got: {body}"
         );
 
