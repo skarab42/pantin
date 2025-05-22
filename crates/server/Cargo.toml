@@ -1,0 +1,40 @@
+[package]
+name = "pantin_server"
+description = "Pantin server"
+readme = "./README.md"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/skarab42/pantin"
+keywords = ["firefox", "marionette", "screenshot", "microservice"]
+categories = ["multimedia::images", "web-programming::http-server"]
+
+[[bin]]
+name = "pantin_server"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.8.1", features = ["macros"] }
+clap = { version = "4.5.30", features = ["derive", "env"] }
+color-eyre = "0.6.3"
+deadpool = "0.12.2"
+pantin_browser.workspace = true
+pantin_marionette.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["timeout", "trace", "request-id"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+nix = "0.29.0"
+reqwest = "0.12.12"
+tracing-test.workspace = true
+url.workspace = true
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
